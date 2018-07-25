@@ -3,9 +3,14 @@ CudaSoftCollisions is a library that allow you to detect self collisions in a te
 
 ## Build the project
 * Clone the project :
-`git clone https://github.com/Mieos/CudaSoftCollisions.git`
+```bash
+git clone https://github.com/Mieos/CudaSoftCollisions.git
+```
+
 * Build the project :
-`mkdir build
+```bash
+mkdir build 
 cd build
 cmake ..
-make`
+make
+```
