@@ -1,0 +1,7 @@
+#ifndef PATHSHELPERS_HPP
+#define PATHSHELPERS_HPP
+
+//Define whatever you want here
+#define MIEOS_HELPERS_DATAPATH_GENERATED "@MIEOS_HELPERS_DATAPATH@"
+
+#endif // PATHSHELPERS_HPP
