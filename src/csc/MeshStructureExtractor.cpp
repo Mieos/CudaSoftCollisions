@@ -1,6 +1,6 @@
 #include "csc/MeshStructureExtractor.hpp"
 
-bool MeshStructureExtractor::extractModel(){
+bool MeshStructureExtractor::extractModelFromFile(std::string fileName){
 
    return false; //TODO
 
