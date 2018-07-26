@@ -17,6 +17,9 @@ set(CMAKE_CXX_STANDARD 11)
 #Packages#
 ##########
 
+find_package(VTK REQUIRED)
+include(${VTK_USE_FILE})
+
 ######
 #Srcs#
 ######

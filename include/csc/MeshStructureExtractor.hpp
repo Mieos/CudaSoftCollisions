@@ -3,12 +3,15 @@
 
 #include <string>
 
+#include <vtkSmartPointer.h>
+#include <vtkUnstructuredGrid.h>
+
 class MeshStructureExtractor {
 
    public:
 
-      static bool extractModelFromFile(std::string fileName); //TODO
-
+      static bool extractModelFromFile(std::string fileName);
+      static bool extractModelFromMesh(const vtkSmartPointer<vtkUnstructuredGrid> & mesh3d);
 };
 
 #endif
