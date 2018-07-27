@@ -11,4 +11,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/tests/unit)
 
 #Create the binary files
 add_executable(uTest_extractSurfaceVolume uTest_extractSurfaceVolume.cpp)
+add_executable(uTest_extractModelFromFile uTest_extractModelFromFile.cpp)
 target_link_libraries(uTest_extractSurfaceVolume cudaSoftCollisions)
+target_link_libraries(uTest_extractModelFromFile cudaSoftCollisions)

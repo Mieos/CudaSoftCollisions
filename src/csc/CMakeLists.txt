@@ -6,7 +6,7 @@ set(sudaSoftCollisions_src
    )
 
 add_library(cudaSoftCollisions SHARED ${sudaSoftCollisions_src})
-target_link_libraries(cudaSoftCollisions ${VTK_LIBRARIES})
+target_link_libraries(cudaSoftCollisions ${VTK_LIBRARIES}  ${OpenCV_LIBS})
 export(PACKAGE cudaSoftCollisions)
 
 

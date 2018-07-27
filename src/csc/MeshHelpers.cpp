@@ -97,26 +97,19 @@ bool MeshHelpers::getSurfaceOfVolMesh(const vtkSmartPointer<vtkUnstructuredGrid>
    for(std::map<size_t,bool>::iterator it = mapPoints.begin(); it != mapPoints.end(); ++it) {
       if(it->second){
          linkPoints.push_back(it->first);
-         std:: cout << "Point used = " << it->first << std::endl;
       }
    }
 
    //Create the mesh of the surface
    vtkSmartPointer<vtkPoints> pointsSurf =vtkSmartPointer<vtkPoints>::New();
-   //vtkSmartPointer<vtkCellArray> facesSurf = vtkSmartPointer<vtkCellArray>::New();;
    vtkSmartPointer<vtkCellArray> trianglesSurf = vtkSmartPointer<vtkCellArray>::New();
-
-   //vtkIdType pointIds[linkPoints.size()];
 
    for(size_t k=0; k<linkPoints.size();k++){
        
       double x = pointsVect.at(3*linkPoints.at(k));
       double y = pointsVect.at(3*linkPoints.at(k)+1);
       double z = pointsVect.at(3*linkPoints.at(k)+2);
-   
-      //std::cout << "PI = " << x << " , " << y << " , " << z << std::endl;
       pointsSurf->InsertNextPoint(x, y, z);
-      //pointIds[k]=k;
 
    }
    
@@ -130,10 +123,8 @@ bool MeshHelpers::getSurfaceOfVolMesh(const vtkSmartPointer<vtkUnstructuredGrid>
       size_t numIt = it->second;
       if(numIt==1){
          
-         //vtkIdType ptsFace[3]; 
          size_t idP1, idP2, idP3;
 
-         //P1
          auto resF1 = std::find(linkPoints.begin(), linkPoints.end(), p1);
          if(resF1!=linkPoints.end()){
             idP1 = resF1 - linkPoints.begin();
@@ -158,22 +149,6 @@ bool MeshHelpers::getSurfaceOfVolMesh(const vtkSmartPointer<vtkUnstructuredGrid>
             return false;
          }
 
-         std::cout << idP1 << " , " << idP2 << " , " << idP3 << std::endl;
-
-         /*
-         ptsFace[0]=idP1;
-         ptsFace[1]=idP2;
-         ptsFace[2]=idP3;
-         
-         double testdebug1[3], testdebug2[3], testdebug3[3] ;
-         resultPolyData->GetPoints()->GetPoint(idP1,testdebug1);
-         resultPolyData->GetPoints()->GetPoint(idP2,testdebug2);
-         resultPolyData->GetPoints()->GetPoint(idP3,testdebug3);
-         std::cout << "P1 = " << testdebug1[0] << " , " << testdebug1[1] << " , " << testdebug1[2] << std::endl;
-         std::cout << "P2 = " << testdebug2[0] << " , " << testdebug2[1] << " , " << testdebug2[2] << std::endl;
-         std::cout << "P3 = " << testdebug3[0] << " , " << testdebug2[1] << " , " << testdebug3[2] << std::endl;
-         */
-      
          vtkSmartPointer<vtkTriangle> triangleU = vtkSmartPointer<vtkTriangle>::New();
          triangleU->GetPointIds()->SetId ( 0, idP1 );
          triangleU->GetPointIds()->SetId ( 1, idP2 );

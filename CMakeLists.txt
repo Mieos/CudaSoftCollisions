@@ -19,6 +19,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 find_package(VTK REQUIRED)
 include(${VTK_USE_FILE})
+find_package(OpenCV REQUIRED)
 
 ######
 #Srcs#
