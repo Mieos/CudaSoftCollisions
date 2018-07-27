@@ -2,6 +2,8 @@
 #include <string>
 #include <fstream>
 
+#include "vtkPLYWriter.h"
+
 #include "pathsHelpers.hpp"
 #include "csc/MeshHelpers.hpp"
 
@@ -11,7 +13,7 @@ int main(int argc, char *argv[]){
    std::string path = MIEOS_HELPERS_DATAPATH_GENERATED;
    
    //Icosaheron
-   path = path + "/meshes/icosahedron_vol.vtk";
+   path = path + "/meshes/torus_vol.vtk";
    std::cout << "Reading: " << path << std::endl;
 
    //Read a data file
@@ -20,8 +22,23 @@ int main(int argc, char *argv[]){
    std::cout << std::endl;
 
    //Extract surface
-   MeshHelpers::getSurfaceOfVolMesh(mesh3d);
+   vtkSmartPointer<vtkPolyData> surfPolyData;
+   MeshHelpers::getSurfaceOfVolMesh(mesh3d, surfPolyData);
    std::cout << "Test : Ending.. " << std::endl << std::endl;
 
+   //Save result (change that later TODO)
+   std::string pathSave = MIEOS_HELPERS_DATAPATH_GENERATED;
+   pathSave = pathSave + "/meshes/test.ply";
+   vtkSmartPointer<vtkPLYWriter> plyWriter = vtkSmartPointer<vtkPLYWriter>::New();
+   plyWriter->SetFileName(pathSave.c_str());
+   plyWriter->SetFileTypeToASCII();
+
+#if VTK_MAJOR_VERSION <= 5
+   plyWriter->SetInput(surfPolyData);
+#else
+   plyWriter->SetInputData(surfPolyData);
+#endif
+   plyWriter->Write();
+   
    return 0;
 }

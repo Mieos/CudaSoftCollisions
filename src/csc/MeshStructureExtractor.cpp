@@ -15,7 +15,8 @@ bool MeshStructureExtractor::extractModelFromFile(std::string fileName){
 bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstructuredGrid> & mesh3d){
 
    //First get the surface of the model
-   MeshHelpers::getSurfaceOfVolMesh(mesh3d);
+   vtkSmartPointer<vtkPolyData> surfPolyData;
+   MeshHelpers::getSurfaceOfVolMesh(mesh3d, surfPolyData);
 
    return false; //TODO
 
