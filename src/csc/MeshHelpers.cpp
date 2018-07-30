@@ -1,6 +1,7 @@
 #include "csc/MeshHelpers.hpp"
 
 #include <vtkUnstructuredGridReader.h>
+#include <vtkCellArray.h>
 
 #include <map>
 #include <algorithm>    // std::sort

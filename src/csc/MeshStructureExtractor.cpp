@@ -1,6 +1,8 @@
 #include "csc/MeshStructureExtractor.hpp"
 #include "csc/MeshHelpers.hpp"
 
+#include <algorithm>
+#include <vtkCellArray.h>
 #include <map>
 
 bool MeshStructureExtractor::extractModelFromFile(std::string fileName){
