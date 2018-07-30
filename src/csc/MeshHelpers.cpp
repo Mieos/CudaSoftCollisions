@@ -19,6 +19,26 @@ bool MeshHelpers::readVolumeMeshVTK(const std::string & fileName, vtkSmartPointe
 
 }
 
+bool MeshHelpers::checkDirectVectorOrientation(const double* v1, const double* v2, const double* v3){
+
+   //Vectoriel product
+   double v1Vv2[3];
+   
+   v1Vv2[0] = v1[1]*v2[2] - v1[2]*v2[1];
+   v1Vv2[1] = v1[2]*v2[0] - v1[0]*v2[2];
+   v1Vv2[2] = v1[0]*v2[1] - v1[1]*v2[0];
+
+   //Dot product
+
+   double dotP = 0;
+   for(size_t k=0; k<3; k++){
+      dotP+= v1Vv2[k]*v3[k];
+   }
+
+   return (dotP > 0);
+
+}
+
 bool MeshHelpers::getSurfaceOfVolMesh(const vtkSmartPointer<vtkUnstructuredGrid> & mesh3d, vtkSmartPointer<vtkPolyData> & resultPolyData){
 
    //Init the surface result
