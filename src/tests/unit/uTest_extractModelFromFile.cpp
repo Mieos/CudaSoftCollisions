@@ -24,7 +24,7 @@ int main(int argc, char *argv[]){
    savePath = savePath + "/meshes/test3Dmodel.ply";
 
    //Icosaheron
-   path = path + "/meshes/torus_vol.vtk";
+   path = path + "/meshes/sphere_volume.vtk";
    std::cout << "Reading: " << path << std::endl;
 
    //Test model extraction
@@ -62,11 +62,27 @@ int main(int argc, char *argv[]){
       std::cout << "No problem detected" << std::endl;
    }
 
+   size_t nTetIni = 0;
+   size_t nOtherStuff=0;
+   vtkIdType npts;
+   vtkIdType *pts;
+   for(size_t k=0; k<msh->GetNumberOfCells(); k++){
+      msh->GetCellPoints(k, npts, pts);
+      if(npts==4){
+         nTetIni++;
+      } else {
+         nOtherStuff++;
+      }
+   }
+   std::cout << "NUM tet init : " << nTetIni << std::endl;
+   std::cout << "NUM tet after : " << tetSelected.size() << std::endl;
+   std::cout << "Others = " << nOtherStuff << std::endl;
+
    //Create the mesh
    std::map<size_t,bool> mapPoints;
    std::map<std::tuple<size_t,size_t,size_t>,bool> mapFaces;
-   vtkIdType npts;
-   vtkIdType *pts;
+   //vtkIdType npts;
+   //vtkIdType *pts;
    size_t idTetFaces[] = {
       0,1,2,
       0,1,3,
