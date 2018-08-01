@@ -6,3 +6,6 @@ build
 *.cpp~
 *.autosave
 *.user
+#Data
+data/meshes/test.ply
+data/meshes/test3Dmodel.ply
