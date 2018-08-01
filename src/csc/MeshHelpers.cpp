@@ -61,7 +61,8 @@ bool MeshHelpers::getSurfaceOfVolMesh(const vtkSmartPointer<vtkUnstructuredGrid>
    vtkIdType *pts; 
    vtkIdType *idFacesArray;
 
-   std::map<std::tuple<size_t, size_t, size_t>,size_t> mapIdsFaces;
+   //std::map<std::tuple<size_t, size_t, size_t>,size_t> mapIdsFaces;
+   std::map<std::tuple<size_t, size_t, size_t>, std::vector<size_t>> mapIdsFaces;
    std::map<size_t,bool> mapPoints;
 
    size_t idTetFaces[] = {
@@ -90,11 +91,13 @@ bool MeshHelpers::getSurfaceOfVolMesh(const vtkSmartPointer<vtkUnstructuredGrid>
             std::tuple<size_t, size_t, size_t> key_t = std::make_tuple(faceIds.at(0),faceIds.at(1),faceIds.at(2));
             if (mapIdsFaces.find(key_t) == mapIdsFaces.end() ) {
                //Update Maps
-               mapIdsFaces[key_t]=1;
+               std::vector<size_t> interVector;
+               interVector.push_back(k);
+               mapIdsFaces[key_t]=interVector;
 
             } else {
                //Update Maps
-               mapIdsFaces[key_t]++;
+               mapIdsFaces[key_t].push_back(k);
             }
 
          }
@@ -103,7 +106,7 @@ bool MeshHelpers::getSurfaceOfVolMesh(const vtkSmartPointer<vtkUnstructuredGrid>
 
    }
 
-   for(std::map<std::tuple<size_t, size_t, size_t>,size_t>::iterator it = mapIdsFaces.begin(); it != mapIdsFaces.end(); ++it) {
+   for(std::map<std::tuple<size_t, size_t, size_t>,std::vector<size_t>>::iterator it = mapIdsFaces.begin(); it != mapIdsFaces.end(); ++it) {
       size_t p1,p2,p3;
       p1 = std::get<0>(it->first);
       p2 = std::get<1>(it->first);
@@ -136,12 +139,12 @@ bool MeshHelpers::getSurfaceOfVolMesh(const vtkSmartPointer<vtkUnstructuredGrid>
    
 
    
-   for(std::map<std::tuple<size_t, size_t, size_t>,size_t>::iterator it = mapIdsFaces.begin(); it != mapIdsFaces.end(); ++it) {
+   for(std::map<std::tuple<size_t, size_t, size_t>,std::vector<size_t>>::iterator it = mapIdsFaces.begin(); it != mapIdsFaces.end(); ++it) {
       size_t p1,p2,p3;
       p1 = std::get<0>(it->first);
       p2 = std::get<1>(it->first);
       p3 = std::get<2>(it->first);
-      size_t numIt = it->second;
+      size_t numIt = it->second.size();
       if(numIt==1){
          
          size_t idP1, idP2, idP3;
@@ -170,11 +173,54 @@ bool MeshHelpers::getSurfaceOfVolMesh(const vtkSmartPointer<vtkUnstructuredGrid>
             return false;
          }
 
+         //Check face orientation
+         size_t numTetConsidered = it->second.at(0);
+         vtkIdType nptsUsed;
+         vtkIdType *ptsUsed;
+         mesh3d->GetCellPoints(numTetConsidered, nptsUsed, ptsUsed);
+         if(nptsUsed!=4){
+            std::cout << "BUG surface extraction"<< std::endl;
+            return false;
+         }
+         std::vector<size_t> vectorFaceU;
+         vectorFaceU.push_back(p1);
+         vectorFaceU.push_back(p2);
+         vectorFaceU.push_back(p3);
+         std::sort(vectorFaceU.begin(),vectorFaceU.end());
+         bool foundFace=false;
+         size_t numIntruder = 0;
+         while(!foundFace){
+           if(std::find(vectorFaceU.begin(),vectorFaceU.end(),ptsUsed[numIntruder])==vectorFaceU.end()){
+              foundFace=true;
+           } else {
+              numIntruder++;
+           } 
+         }
+         double p1Data[3], p2Data[3], p3Data[3], p4Data[3];
+         for(size_t k=0; k<3; k++){
+            p1Data[k]=double(pointsVect.at(3*p1+k));
+            p2Data[k]=double(pointsVect.at(3*p2+k));
+            p3Data[k]=double(pointsVect.at(3*p3+k));
+            p4Data[k]=double(pointsVect.at(3*ptsUsed[numIntruder]+k));
+         }
+         double v1[3],v2[3],v3[3];
+         for(size_t k=0; k<3; k++){
+            v1[k]=p2Data[k]-p1Data[k];
+            v2[k]=p3Data[k]-p1Data[k];
+            v3[k]=p4Data[k]-p1Data[k];
+         }
+
+         //Add new face
          vtkSmartPointer<vtkTriangle> triangleU = vtkSmartPointer<vtkTriangle>::New();
-         triangleU->GetPointIds()->SetId ( 0, idP1 );
-         triangleU->GetPointIds()->SetId ( 1, idP2 );
-         triangleU->GetPointIds()->SetId ( 2, idP3 );
-   
+         if(MeshHelpers::checkDirectVectorOrientation(v1,v2,v3)){ 
+            triangleU->GetPointIds()->SetId ( 0, idP1 );
+            triangleU->GetPointIds()->SetId ( 1, idP3 );
+            triangleU->GetPointIds()->SetId ( 2, idP2 );
+         } else {
+            triangleU->GetPointIds()->SetId ( 0, idP1 );
+            triangleU->GetPointIds()->SetId ( 1, idP2 );
+            triangleU->GetPointIds()->SetId ( 2, idP3 );
+         }
          trianglesSurf->InsertNextCell(triangleU);
 
       }

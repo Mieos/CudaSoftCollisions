@@ -31,7 +31,8 @@ int main(int argc, char *argv[]){
    pathSave = pathSave + "/meshes/test.ply";
    vtkSmartPointer<vtkPLYWriter> plyWriter = vtkSmartPointer<vtkPLYWriter>::New();
    plyWriter->SetFileName(pathSave.c_str());
-   plyWriter->SetFileTypeToASCII();
+   //plyWriter->SetFileTypeToASCII();
+   plyWriter->SetFileTypeToBinary();
 
 #if VTK_MAJOR_VERSION <= 5
    plyWriter->SetInput(surfPolyData);
