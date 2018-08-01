@@ -80,23 +80,25 @@ int main(int argc, char *argv[]){
 
    //Create the mesh
    std::map<size_t,bool> mapPoints;
-   std::map<std::tuple<size_t,size_t,size_t>,bool> mapFaces;
+   std::map<std::tuple<size_t,size_t,size_t>,std::vector<size_t>> mapFaces;
    //vtkIdType npts;
    //vtkIdType *pts;
    size_t idTetFaces[] = {
-      0,1,2,
-      0,1,3,
-      0,2,3,
-      1,2,3
+      0,1,2,3,
+      0,1,3,2,
+      0,2,3,1,
+      1,2,3,0
    };
+   
 
    
    for(size_t k=0; k<tetSelected.size(); k++){
       msh->GetCellPoints(tetSelected.at(k), npts, pts);
       for(size_t i=0; i<4; i++){
-         size_t i0 = pts[idTetFaces[3*i]];
-         size_t i1 = pts[idTetFaces[3*i+1]];
-         size_t i2 = pts[idTetFaces[3*i+2]];
+         size_t i0 = pts[idTetFaces[4*i]];
+         size_t i1 = pts[idTetFaces[4*i+1]];
+         size_t i2 = pts[idTetFaces[4*i+2]];
+         size_t iIntruder = pts[idTetFaces[4*i+3]];
          mapPoints[i0]=true;
          mapPoints[i1]=true;
          mapPoints[i2]=true;
@@ -107,11 +109,13 @@ int main(int argc, char *argv[]){
          std::sort(faceNums.begin(),faceNums.end());
          std::tuple<size_t, size_t, size_t> keyU = std::make_tuple(faceNums.at(0),faceNums.at(1),faceNums.at(2));
          if (mapFaces.find(keyU) == mapFaces.end() ) {
-            mapFaces[keyU]=true;   
+            std::vector<size_t> interVector;
+            interVector.push_back(iIntruder);
+            mapFaces[keyU]=interVector;   
          } else {
-            mapFaces[keyU]=false;
+            mapFaces[keyU].push_back(iIntruder);
          }
-      } 
+      }
    }
    
 
@@ -129,7 +133,7 @@ int main(int argc, char *argv[]){
    //Faces
 
    vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
-   for(std::map<std::tuple<size_t,size_t,size_t>,bool>::iterator it = mapFaces.begin(); it != mapFaces.end(); ++it) {
+   for(std::map<std::tuple<size_t,size_t,size_t>,std::vector<size_t>>::iterator it = mapFaces.begin(); it != mapFaces.end(); ++it) {
 
       vtkSmartPointer<vtkTriangle> triangleU = vtkSmartPointer<vtkTriangle>::New();
 
@@ -145,10 +149,29 @@ int main(int argc, char *argv[]){
       size_t i1R = searchId1 - pointsID.begin();
       size_t i2R = searchId2 - pointsID.begin();
 
-      triangleU->GetPointIds()->SetId( 0, i0R );
-      triangleU->GetPointIds()->SetId( 1, i1R );
-      triangleU->GetPointIds()->SetId( 2, i2R );
-
+      //Check orientation
+      size_t iIntruder = it->second.at(0);
+      double p1Used[3], p2Used[3], p3Used[3], p4Used[3];
+      msh->GetPoints()->GetPoint(i0,p1Used);
+      msh->GetPoints()->GetPoint(i1,p2Used);
+      msh->GetPoints()->GetPoint(i2,p3Used);
+      msh->GetPoints()->GetPoint(iIntruder,p4Used);
+      double v1[3],v2[3],v3[3];
+      for(size_t k=0; k<3; k++){
+         v1[k]=p2Used[k]-p1Used[k];
+         v2[k]=p3Used[k]-p1Used[k];
+         v3[k]=p4Used[k]-p1Used[k];
+      }
+      //Reorient
+      if(MeshHelpers::checkDirectVectorOrientation(v1,v2,v3)){
+         triangleU->GetPointIds()->SetId( 0, i0R );
+         triangleU->GetPointIds()->SetId( 1, i2R );
+         triangleU->GetPointIds()->SetId( 2, i1R );
+      } else {
+         triangleU->GetPointIds()->SetId( 0, i0R );
+         triangleU->GetPointIds()->SetId( 1, i1R );
+         triangleU->GetPointIds()->SetId( 2, i2R );
+      }
       triangles->InsertNextCell(triangleU);
 
    }
