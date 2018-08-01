@@ -8,18 +8,18 @@
 //Opencv
 #include "opencv2/features2d/features2d.hpp"
 
-bool MeshStructureExtractor::extractModelFromFile(std::string fileName, cv::Mat & resultStructMatTet, std::vector<size_t> & associationVectorResult , std::vector<size_t> & tetSelected){
+bool MeshStructureExtractor::extractModelFromFile(std::string fileName, cv::Mat & resultStructMatTet, std::vector<std::vector<size_t>> & tetIdVector, std::vector<size_t> & associationVectorResult , std::vector<size_t> & tetSelected){
 
    vtkSmartPointer<vtkUnstructuredGrid> msh;
    if(!MeshHelpers::readVolumeMeshVTK(fileName,msh)){
       return false;
    }
 
-   return extractModelFromMesh(msh, resultStructMatTet, associationVectorResult, tetSelected);
+   return extractModelFromMesh(msh, resultStructMatTet, tetIdVector, associationVectorResult, tetSelected);
 
 }
 
-bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstructuredGrid> & mesh3d, cv::Mat & resultStructMatTet, std::vector<size_t> & associationVectorResult, std::vector<size_t> & tetSelected){
+bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstructuredGrid> & mesh3d, cv::Mat & resultStructMatTet, std::vector<std::vector<size_t>> & tetIdVector, std::vector<size_t> & associationVectorResult, std::vector<size_t> & tetSelected){
 
    //First get the surface of the model
    vtkSmartPointer<vtkPolyData> surfPolyData;
@@ -164,10 +164,9 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
       }
    }
 
-
    //Tetrahedron map points
-   cv::Mat tetrahedronMat = cv::Mat::zeros(4*assoFaceSFaceV.size(),3,CV_32FC1);
-
+   std::vector<std::vector<size_t>> vectorTetId;
+   std::map<size_t,bool> pointsTet;
 
    for(size_t k=0; k<assoFaceSFaceV.size(); k++){
      
@@ -223,30 +222,62 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
          v3[i] = pOutData[i] - p1Data[i];
       }
 
+      std::vector<size_t> vectorInter;
+      vectorInter.push_back(idF1[0]);
+      pointsTet[idF1[0]]=true;
+      pointsTet[idF1[1]]=true;
+      pointsTet[idF1[2]]=true;
+      pointsTet[pointIDout]=true;
+   
       if(MeshHelpers::checkDirectVectorOrientation(v1,v2,v3)){
-     
+      
          //OK
-         for(size_t j=0; j<3; j++){
-            tetrahedronMat.at<float>(4*k,j) = float(p1Data[j]);
-            tetrahedronMat.at<float>(4*k+1,j) = float(p2Data[j]);
-            tetrahedronMat.at<float>(4*k+2,j) = float(p3Data[j]);
-            tetrahedronMat.at<float>(4*k+3,j) = float(pOutData[j]);
-         }
+         vectorInter.push_back(idF1[1]);
+         vectorInter.push_back(idF1[2]);
+         vectorInter.push_back(pointIDout);
 
       } else {
       
          //Reorder
-         for(size_t j=0; j<3; j++){
-            tetrahedronMat.at<float>(4*k,j) = float(p1Data[j]);
-            tetrahedronMat.at<float>(4*k+1,j) = float(p3Data[j]);
-            tetrahedronMat.at<float>(4*k+2,j) = float(p2Data[j]);
-            tetrahedronMat.at<float>(4*k+3,j) = float(pOutData[j]);
-         }
+      
+         vectorInter.push_back(idF1[2]);
+         vectorInter.push_back(idF1[1]);
+         vectorInter.push_back(pointIDout);
 
       }
 
+      vectorTetId.push_back(vectorInter);
+
    }
 
+   size_t numPointsTet=0;
+   std::vector<size_t> vectorTetIDF;
+   for(std::map<size_t,bool>::iterator it = pointsTet.begin(); it != pointsTet.end(); ++it) {
+       numPointsTet++;
+       vectorTetIDF.push_back(it->first);
+   }
+
+   //Create the point matrix
+   cv::Mat tetrahedronMat = cv::Mat::zeros(numPointsTet,3,CV_32FC1);
+   for(size_t k=0;k<numPointsTet;k++){
+      double pReal[3];
+      mesh3d->GetPoints()->GetPoint(vectorTetIDF.at(k),pReal);
+      for(size_t i=0; i<3;i++){
+         tetrahedronMat.at<float>(k,i)=float(pReal[i]);
+      }
+   }
+
+   //
+   for(size_t k=0; k<vectorTetId.size(); k++){
+      std::vector<size_t> vectorInter;
+      for(size_t i=0; i<4; i++){
+         auto idFoundInter = std::find(vectorTetIDF.begin(),vectorTetIDF.end(),vectorTetId.at(k).at(i));
+         size_t idFound = idFoundInter - vectorTetIDF.begin();
+         vectorInter.push_back(idFound);
+      }
+      tetIdVector.push_back(vectorInter);
+   }
+   
    cv::Mat matMesh3D = cv::Mat::zeros(mesh3d->GetNumberOfPoints(),3,CV_32FC1);
    
    for(size_t k=0; k<mesh3d->GetNumberOfPoints();k++){

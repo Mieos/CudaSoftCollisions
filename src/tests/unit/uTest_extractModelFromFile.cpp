@@ -31,7 +31,8 @@ int main(int argc, char *argv[]){
    cv::Mat matPointsTet;
    std::vector<size_t> associationResults;
    std::vector<size_t> tetSelected;
-   MeshStructureExtractor::extractModelFromFile(path,matPointsTet,associationResults,tetSelected);
+   std::vector<std::vector<size_t>> tetIdVector;
+   MeshStructureExtractor::extractModelFromFile(path,matPointsTet,tetIdVector,associationResults,tetSelected);
 
    //Read 3D mesh
    vtkSmartPointer<vtkUnstructuredGrid> msh;
@@ -62,27 +63,13 @@ int main(int argc, char *argv[]){
       std::cout << "No problem detected" << std::endl;
    }
 
-   size_t nTetIni = 0;
-   size_t nOtherStuff=0;
-   vtkIdType npts;
-   vtkIdType *pts;
-   for(size_t k=0; k<msh->GetNumberOfCells(); k++){
-      msh->GetCellPoints(k, npts, pts);
-      if(npts==4){
-         nTetIni++;
-      } else {
-         nOtherStuff++;
-      }
-   }
-   std::cout << "NUM tet init : " << nTetIni << std::endl;
-   std::cout << "NUM tet after : " << tetSelected.size() << std::endl;
-   std::cout << "Others = " << nOtherStuff << std::endl;
+   std::cout << "NUM points in matrix : " << matPointsTet.rows << std::endl;
 
    //Create the mesh
    std::map<size_t,bool> mapPoints;
    std::map<std::tuple<size_t,size_t,size_t>,std::vector<size_t>> mapFaces;
-   //vtkIdType npts;
-   //vtkIdType *pts;
+   vtkIdType npts;
+   vtkIdType *pts;
    size_t idTetFaces[] = {
       0,1,2,3,
       0,1,3,2,
