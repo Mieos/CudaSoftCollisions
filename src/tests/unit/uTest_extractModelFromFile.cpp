@@ -24,7 +24,8 @@ int main(int argc, char *argv[]){
    savePath = savePath + "/meshes/test3Dmodel.ply";
 
    //Icosaheron
-   path = path + "/meshes/sphere_volume.vtk";
+   //path = path + "/meshes/sphere_volume.vtk";
+   path = path + "/meshes/torus_vol_highres.vtk";
    std::cout << "Reading: " << path << std::endl;
 
    //Test model extraction

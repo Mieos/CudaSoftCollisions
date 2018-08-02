@@ -28,7 +28,6 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
    size_t numFaces = surfPolyData->GetNumberOfPolys();
    size_t numberCells = mesh3d->GetNumberOfCells();
 
-   //std::map<std::tuple<size_t, size_t, size_t>,size_t> mapIdsFaces;
    vtkIdType npts;
    vtkIdType *pts;
 
@@ -123,12 +122,23 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
    //Search the faces of the surface
    std::vector<std::pair<size_t,size_t>> assoFaceSFaceV;
    for(size_t k=0; k<vectorIdFacesSurface.size(); k++){
+      
+      //Get the face
+      size_t p1 = std::get<0>(vectorIdFacesSurface.at(k));
+      size_t p2 = std::get<1>(vectorIdFacesSurface.at(k));
+      size_t p3 = std::get<2>(vectorIdFacesSurface.at(k));
+      //Get the corresponding point in volumetric reference
+      auto p1C = associationsSV.at(p1);
+      auto p2C = associationsSV.at(p2);
+      auto p3C = associationsSV.at(p3);
       std::vector<size_t> faceTranslated;
-      faceTranslated.push_back(std::get<0>(vectorIdFacesSurface.at(k)));
-      faceTranslated.push_back(std::get<1>(vectorIdFacesSurface.at(k)));
-      faceTranslated.push_back(std::get<2>(vectorIdFacesSurface.at(k)));
+      faceTranslated.push_back(p1C);
+      faceTranslated.push_back(p2C);
+      faceTranslated.push_back(p3C);
       std::sort(faceTranslated.begin(),faceTranslated.end());
       std::tuple<size_t, size_t, size_t> keyU = std::make_tuple(faceTranslated.at(0), faceTranslated.at(1), faceTranslated.at(2));
+
+      //Search the face
       if (mapIdsFacesVolum.find(keyU) == mapIdsFacesVolum.end() ) {
          std::cout << "Bug in model extraction" << std::endl;
          return false;
@@ -136,9 +146,11 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
          if(mapIdsFacesVolum[keyU].size()!=1){
             std::cout << "Bug in model extraction : 2" << std::endl;
          } else {
-            tetSelected.push_back(mapIdsFacesVolum[keyU].at(0)); 
-            //Get the tetrahedron cooresponding
+
             mesh3d->GetCellPoints(mapIdsFacesVolum[keyU].at(0), npts, pts);
+            tetSelected.push_back(mapIdsFacesVolum[keyU].at(0)); 
+            
+            //Get the tetrahedron corresponding
             if(npts!=4){
                std::cout << "Bug in model extraction : 3" << std::endl;
             } else {
@@ -154,7 +166,7 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
                         && (testVector.at(2) == faceTranslated.at(2)) ){
                      foundFace=true;
                   } else {
-                     numFaceFound;
+                     numFaceFound++;
                   }
                }
                std::pair<size_t,size_t> keyPair = std::make_pair(mapIdsFacesVolum[keyU].at(0),numFaceFound);
