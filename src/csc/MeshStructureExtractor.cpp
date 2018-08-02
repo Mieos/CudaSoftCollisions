@@ -52,7 +52,6 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
          std::sort(interVector.begin(),interVector.end());
          std::tuple<size_t, size_t, size_t> keyU = std::make_tuple(interVector.at(0),interVector.at(1),interVector.at(2));
          vectorIdFacesSurface.push_back(keyU);
-         //mapIdsFaces[keyU]=k;
       } else {
          std::cout << "Malformed polydata: escaping" << std::endl;
          return false;

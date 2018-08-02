@@ -7,40 +7,28 @@ project(CudaSoftCollisions)
 #Use C++11
 set(CMAKE_CXX_STANDARD 11)
 
-#Other Flags you want to add to the project
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-
-#Options
-#option(myOption "myOption" ON)
-
 ##########
 #Packages#
 ##########
 
-find_package(VTK REQUIRED)
-include(${VTK_USE_FILE})
 find_package(OpenCV REQUIRED)
+find_package(CUDA REQUIRED)
+find_package(VTK REQUIRED)
 
 ######
 #Srcs#
 ######
 
-##
-#External packages
-##
-add_subdirectory(external)
-
 ##########
 #Includes#
 ##########
-
+#Does not include vtk headers here because vtk does not like them
 include_directories(include)
 
 ###################
 #Generated helpers#
 ###################
 #Generated helpers such as paths and others stuffs that can be used in cpp afterward
-#Usefull when you need an absolute path
 add_subdirectory(helpers)
 include_directories(${CMAKE_BINARY_DIR}/generated/helpers )
 
@@ -55,6 +43,8 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 ################
 
 #Lib
+add_subdirectory(src/csc/cuda_src) #Cuda does not like vtk headers..
+include(${VTK_USE_FILE})
 add_subdirectory(src/csc)
 
 #Tests
