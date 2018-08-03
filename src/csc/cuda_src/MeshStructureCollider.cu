@@ -4,6 +4,11 @@
 
 __device__ bool checkSphereIntersection(float* centerSphereID, size_t* s1, size_t* s2){
 
+
+   if((centerSphereID[4*(*s1)+3]==0)||(centerSphereID[4*(*s2)+3]==0)){
+      printf("WTF\n");
+   }
+
    float distCenter = 
       (centerSphereID[4*(*s1)] - centerSphereID[4*(*s2)])*
       (centerSphereID[4*(*s1)] - centerSphereID[4*(*s2)])+
@@ -12,9 +17,11 @@ __device__ bool checkSphereIntersection(float* centerSphereID, size_t* s1, size_
       (centerSphereID[4*(*s1)+2] - centerSphereID[4*(*s2)+2])*
       (centerSphereID[4*(*s1)+2] - centerSphereID[4*(*s2)+2]);
    
-   distCenter=sqrt(distCenter);
 
-   if(distCenter<(centerSphereID[4*(*s1)+3]+centerSphereID[4*(*s2)+3])){
+   distCenter=sqrt(distCenter);
+   float addRadius = centerSphereID[4*(*s1)+3] + centerSphereID[4*(*s2)+3]; 
+
+   if(distCenter<addRadius){
       return true;
    } else {
       return false;
@@ -38,16 +45,16 @@ __global__ void updateCenterSphere(float*  dataPointsD, size_t* idArrayD, float*
    if(numTet<numberTets){
 
       //Coordinate
-   centerSphereID[4*numTet] = (dataPointsD[3*id1] + dataPointsD[3*id2] + dataPointsD[3*id3] + dataPointsD[3*id4])/4.0;
-   centerSphereID[4*numTet+1] = (dataPointsD[3*id1+1] + dataPointsD[3*id2+1] + dataPointsD[3*id3+1] + dataPointsD[3*id4+1])/4.0;
-   centerSphereID[4*numTet+2] = (dataPointsD[3*id1+2] + dataPointsD[3*id2+2] + dataPointsD[3*id3+2] + dataPointsD[3*id4+2])/4.0;
+      centerSphereID[4*numTet] = (dataPointsD[3*id1] + dataPointsD[3*id2] + dataPointsD[3*id3] + dataPointsD[3*id4])/4.0;
+      centerSphereID[4*numTet+1] = (dataPointsD[3*id1+1] + dataPointsD[3*id2+1] + dataPointsD[3*id3+1] + dataPointsD[3*id4+1])/4.0;
+      centerSphereID[4*numTet+2] = (dataPointsD[3*id1+2] + dataPointsD[3*id2+2] + dataPointsD[3*id3+2] + dataPointsD[3*id4+2])/4.0;
    
       //Radius
       float radius = 
          (centerSphereID[4*numTet] - dataPointsD[3*id1])*(centerSphereID[4*numTet] - dataPointsD[3*id1])+
          (centerSphereID[4*numTet+1] - dataPointsD[3*id1+1])*(centerSphereID[4*numTet+1] - dataPointsD[3*id1+1])+
          (centerSphereID[4*numTet+2] - dataPointsD[3*id1+2])*(centerSphereID[4*numTet+2] - dataPointsD[3*id1+2]);
-      centerSphereID[4*numberTets+3] = sqrt(radius);
+      centerSphereID[4*numTet+3] = sqrt(radius);
 
    } else {
       //printf ("DEBUG\n");
@@ -64,6 +71,7 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
       //First part
       for(size_t k=0; k<numTet-1; k++){
          if(checkSphereIntersection(centerSphereID,&numTet,&k)){
+            //printf("DEB : %u\n", numTet);
             if(checkTetraIntersection(dataPointsD,idArrayD,&numTet,&k)){
                intersectionVector[numTet]=true;
                break;

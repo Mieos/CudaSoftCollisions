@@ -85,7 +85,9 @@ int main(int argc, char *argv[]){
    //Check results
    for(size_t k=0; k<collideVector.size();k++){
       if(collideVector.at(k)){
-         std::cout << "Collide : " << k << std::endl;
+         //std::cout << "Collide : " << k << std::endl;
+      } else {
+         std::cout << "NOPE" << std::endl;
       }
    }
 
