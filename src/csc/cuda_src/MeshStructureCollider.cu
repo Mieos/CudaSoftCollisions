@@ -1,6 +1,90 @@
 #include "csc/MeshStructureCollider.hpp"
 #include <iostream>
-//#include <string>
+#include <math.h> 
+
+__device__ bool checkSphereIntersection(float* centerSphereID, size_t* s1, size_t* s2){
+
+   float distCenter = 
+      (centerSphereID[4*(*s1)] - centerSphereID[4*(*s2)])*
+      (centerSphereID[4*(*s1)] - centerSphereID[4*(*s2)])+
+      (centerSphereID[4*(*s1)+1] - centerSphereID[4*(*s2)+1])*
+      (centerSphereID[4*(*s1)+1] - centerSphereID[4*(*s2)+1])+
+      (centerSphereID[4*(*s1)+2] - centerSphereID[4*(*s2)+2])*
+      (centerSphereID[4*(*s1)+2] - centerSphereID[4*(*s2)+2]);
+   
+   distCenter=sqrt(distCenter);
+
+   if(distCenter<(centerSphereID[4*(*s1)+3]+centerSphereID[4*(*s2)+3])){
+      return true;
+   } else {
+      return false;
+   }
+
+} 
+
+__device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, size_t* s1, size_t* s2){
+   return true;
+}
+
+__global__ void updateCenterSphere(float*  dataPointsD, size_t* idArrayD, float* centerSphereID, size_t numberTets){
+
+   size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
+
+   size_t id1 = idArrayD[4*numTet];
+   size_t id2 = idArrayD[4*numTet+1];
+   size_t id3 = idArrayD[4*numTet+2];
+   size_t id4 = idArrayD[4*numTet+3];
+
+   if(numTet<numberTets){
+
+      //Coordinate
+   centerSphereID[4*numTet] = (dataPointsD[3*id1] + dataPointsD[3*id2] + dataPointsD[3*id3] + dataPointsD[3*id4])/4.0;
+   centerSphereID[4*numTet+1] = (dataPointsD[3*id1+1] + dataPointsD[3*id2+1] + dataPointsD[3*id3+1] + dataPointsD[3*id4+1])/4.0;
+   centerSphereID[4*numTet+2] = (dataPointsD[3*id1+2] + dataPointsD[3*id2+2] + dataPointsD[3*id3+2] + dataPointsD[3*id4+2])/4.0;
+   
+      //Radius
+      float radius = 
+         (centerSphereID[4*numTet] - dataPointsD[3*id1])*(centerSphereID[4*numTet] - dataPointsD[3*id1])+
+         (centerSphereID[4*numTet+1] - dataPointsD[3*id1+1])*(centerSphereID[4*numTet+1] - dataPointsD[3*id1+1])+
+         (centerSphereID[4*numTet+2] - dataPointsD[3*id1+2])*(centerSphereID[4*numTet+2] - dataPointsD[3*id1+2]);
+      centerSphereID[4*numberTets+3] = sqrt(radius);
+
+   } else {
+      //printf ("DEBUG\n");
+   }
+
+}
+
+__global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, float* centerSphereID, size_t numberTets, bool* intersectionVector){
+
+   size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
+   intersectionVector[numTet]=false;
+
+   if(numTet<numberTets){
+      //First part
+      for(size_t k=0; k<numTet-1; k++){
+         if(checkSphereIntersection(centerSphereID,&numTet,&k)){
+            if(checkTetraIntersection(dataPointsD,idArrayD,&numTet,&k)){
+               intersectionVector[numTet]=true;
+               break;
+            }
+         }
+      }
+      //Second part
+      if(!intersectionVector[numTet]){
+         for(size_t k=numTet+1; k<numberTets; k++){ 
+            if(checkSphereIntersection(centerSphereID,&numTet,&k)){ 
+               if(checkTetraIntersection(dataPointsD,idArrayD,&numTet,&k)){
+                  intersectionVector[numTet]=true;
+               }
+            }
+         }
+      }
+   } else { 
+      //printf ("DEBUG\n");
+   }
+
+}
 
 MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std::vector<std::vector<size_t> > & tetIdVector, const std::vector<size_t> & associationVectorU) : initialized(false), numPoints(0), verbose(true){
 
@@ -30,7 +114,7 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 
          //Copy the index of the tetrahedrons
          this->numTets=tetIdVector.size();
-         float* tetVectorPointer = new float[4*tetIdVector.size()];
+         size_t* tetVectorPointer = new size_t[4*tetIdVector.size()];
 
          for(size_t k=0; k<tetIdVector.size(); k++){
 
@@ -46,12 +130,21 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 
          }
 
-         size_t size_tetVector = 4*this->numTets*sizeof(float);
+         size_t size_tetVector = 4*this->numTets*sizeof(size_t);
          cudaMalloc((void **) &(this->tetId_d), size_tetVector);
          cudaMemcpy(this->tetId_d, tetVectorPointer, size_tetVector, cudaMemcpyHostToDevice);
 
          //Copy the association vector
          this->associationVector = associationVectorU;
+
+         //Create sphere buffer: (x y z radius)
+         size_t size_sphereBuffer = 4*this->numTets*sizeof(float);
+         cudaMalloc((void **) &(this->sphereBuf_d), size_sphereBuffer);
+
+         //Create collision vector (CPU and GPU)
+         this->collideVectorArray = new bool[this->numTets];
+         size_t size_collideVectorArray = this->numTets*sizeof(bool); 
+         cudaMalloc((void **) &(this->collideVectorArray_d), size_collideVectorArray);
 
          //Update state
          this->initialized=true;
@@ -73,8 +166,10 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 MeshStructureCollider::~MeshStructureCollider(){
 
    delete[] this->dataArrayBuff;
+   delete[] this->collideVectorArray;
    cudaFree(this->data_d);
    cudaFree(this->tetId_d);
+   cudaFree(this->sphereBuf_d);
 
 }
 
@@ -120,5 +215,39 @@ bool MeshStructureCollider::updatePointsPositions(const cv::Mat & newPositions){
    cudaMemcpy(this->data_d, this->dataArrayBuff, size_data, cudaMemcpyHostToDevice);
 
    return true;
+
+}
+
+bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
+
+   cudaDeviceProp prop;
+   cudaGetDeviceProperties(&prop,0);
+   size_t sizeBlockToUse = sqrt (prop.maxThreadsDim[0]);
+   size_t sizeGridx = ceil(float(this->numTets)/float(sizeBlockToUse*sizeBlockToUse));
+   size_t sizeGridy = 1;
+
+   //std::cout << "Tets = " << this->numTets << std::endl;
+   //std::cout << "Block size = " << sizeBlockToUse << std::endl;
+   //std::cout << "Grid size = " << sizeGridx << std::endl;
+
+   dim3 dimGrid(sizeGridx,sizeGridy);
+   dim3 dimBlock(sizeBlockToUse, sizeBlockToUse);
+
+   //Update sphere
+   updateCenterSphere<<<dimGrid, dimBlock>>>(data_d, tetId_d, sphereBuf_d, this->numTets);
+   cudaDeviceSynchronize();
+
+   //Check collision
+   checkForIntersection<<<dimGrid, dimBlock>>>(data_d, tetId_d, sphereBuf_d, this->numTets, this->collideVectorArray_d); 
+   cudaDeviceSynchronize();
+
+   //Get results
+   size_t sizeResult = sizeof(bool)*this->numTets;
+   cudaMemcpy(collideVectorArray, collideVectorArray_d, sizeResult, cudaMemcpyDeviceToHost);
+   for(size_t k=0; k<this->numTets;k++){
+      collisionList.at(k)=collideVectorArray[k];
+   }
+
+   return false; 
 
 }

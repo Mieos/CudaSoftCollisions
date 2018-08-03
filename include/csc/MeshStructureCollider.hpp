@@ -12,7 +12,7 @@ class MeshStructureCollider {
       ~MeshStructureCollider();
       bool isProperlyInitialized();
       bool updatePointsPositions(const cv::Mat & newPositions);
-
+      bool collide(std::vector<bool> & collisionList);
    private:
       bool initialized;
       bool verbose;
@@ -20,7 +20,10 @@ class MeshStructureCollider {
       size_t numTets;
       float* dataArrayBuff;
       float* data_d;
-      float* tetId_d;
+      size_t* tetId_d;
+      float* sphereBuf_d;
+      bool* collideVectorArray;
+      bool* collideVectorArray_d;
       std::vector<size_t> associationVector;
 
 };

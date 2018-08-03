@@ -70,6 +70,24 @@ int main(int argc, char *argv[]){
    auto diffUpdate = endUpdate - startUpdate;
    std::cout << std::chrono::duration <double, std::milli> (diffUpdate).count() << " ms" << std::endl;
 
+   //Collide
+   std::vector<bool> collideVector;
+   for(size_t k=0; k<tetSelected.size();k++){
+      collideVector.push_back(false);
+   }
+   std::cout << "Colliding ... ";
+   auto startCollide = std::chrono::steady_clock::now(); 
+   msc->collide(collideVector);
+   auto endCollide = std::chrono::steady_clock::now();
+   auto diffCollide = endCollide - startCollide;
+   std::cout << std::chrono::duration <double, std::milli> (diffCollide).count() << " ms" << std::endl;
+
+   //Check results
+   for(size_t k=0; k<collideVector.size();k++){
+      if(collideVector.at(k)){
+         std::cout << "Collide : " << k << std::endl;
+      }
+   }
 
    delete msc;
 
