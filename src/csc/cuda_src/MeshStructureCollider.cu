@@ -2,24 +2,21 @@
 #include <iostream>
 #include <math.h> 
 
-__device__ bool checkSphereIntersection(float* centerSphereID, size_t* s1, size_t* s2){
+#define EPSILON_d 0.0000001f
 
-
-   //if((centerSphereID[4*(*s1)+3]==0)||(centerSphereID[4*(*s2)+3]==0)){
-   //printf("WTF\n");
-   //}
+__device__ bool checkSphereIntersection(float* centerSphereID, size_t s1, size_t s2){
 
    float distCenter = 
-      (centerSphereID[4*(*s1)] - centerSphereID[4*(*s2)])*
-      (centerSphereID[4*(*s1)] - centerSphereID[4*(*s2)])+
-      (centerSphereID[4*(*s1)+1] - centerSphereID[4*(*s2)+1])*
-      (centerSphereID[4*(*s1)+1] - centerSphereID[4*(*s2)+1])+
-      (centerSphereID[4*(*s1)+2] - centerSphereID[4*(*s2)+2])*
-      (centerSphereID[4*(*s1)+2] - centerSphereID[4*(*s2)+2]);
+      (centerSphereID[4*s1] - centerSphereID[4*s2])*
+      (centerSphereID[4*s1] - centerSphereID[4*s2])+
+      (centerSphereID[4*s1+1] - centerSphereID[4*s2+1])*
+      (centerSphereID[4*s1+1] - centerSphereID[4*s2+1])+
+      (centerSphereID[4*s1+2] - centerSphereID[4*s2+2])*
+      (centerSphereID[4*s1+2] - centerSphereID[4*s2+2]);
 
 
    distCenter=sqrt(distCenter);
-   float addRadius = centerSphereID[4*(*s1)+3] + centerSphereID[4*(*s2)+3]; 
+   float addRadius = centerSphereID[4*s1+3] + centerSphereID[4*s2+3]; 
 
    if(distCenter<addRadius){
       return true;
@@ -36,61 +33,70 @@ __device__ bool checkOrientation(float* Ptest, float* Nm, float* Pu){
       vt2[k]=Ptest[k]-Pu[k];
    }
 
+
    float dotP = Nm[0]*vt2[0] + Nm[1]*vt2[1] + Nm[2]*vt2[2];
 
-   //printf("%f\n",dotP);
+   if(dotP>0){
 
-   return (dotP>=0);
+      if(dotP>EPSILON_d){
+         return true;
+      } else {
+         return false; 
+      }
+
+   } else {
+      return false;
+   }
 
 }
 
-__device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, float* normalBuf, size_t* s1, size_t* s2){
+__device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, float* normalBuf, size_t s1, size_t s2){
 
-   size_t id1T1 = idArrayD[4*(*s1)];
-   size_t id2T1 = idArrayD[4*(*s1)+1];
-   size_t id3T1 = idArrayD[4*(*s1)+2];
-   size_t id4T1 = idArrayD[4*(*s1)+3];
+   size_t id1T1 = idArrayD[4*s1];
+   size_t id2T1 = idArrayD[4*s1+1];
+   size_t id3T1 = idArrayD[4*s1+2];
+   size_t id4T1 = idArrayD[4*s1+3];
 
-   size_t numTet = (*s1);
+   size_t numTet = s1;
 
-   /*
-   printf("OK2:%u\n",numTet);
+   size_t debugPoints[] = {
+      idArrayD[4*s1+3],
+      idArrayD[4*s1+1],
+      idArrayD[4*s1+2],
+      idArrayD[4*s1],
 
-   printf("px buf:%f\n",normalBuf[4*6*numTet+3]);
-   printf("py buf:%f\n",normalBuf[4*6*numTet+4]);
-   printf("pz buf:%f\n",normalBuf[4*6*numTet+5]);
-   
-   printf("nx buf:%f\n",normalBuf[4*6*numTet]);
-   printf("ny buf:%f\n",normalBuf[4*6*numTet+1]);
-   printf("nz buf:%f\n",normalBuf[4*6*numTet+2]);
-   */
+   };
 
-   //DEBUG test only one tet
-   for(size_t k=0; k<1; k++){
+   //Dummy test for now
+   bool intersectionDetected=false; 
+
+   for(size_t k=0; k<4; k++){
 
       float normalU[3];
       float pU[3];
-      normalU[0] = normalBuf[4*6*numTet+k*6];
-      normalU[1] = normalBuf[4*6*numTet+k*6+1];
-      normalU[2] = normalBuf[4*6*numTet+k*6+2];
+
+      normalU[0] = -normalBuf[4*6*numTet+k*6];
+      normalU[1] = -normalBuf[4*6*numTet+k*6+1];
+      normalU[2] = -normalBuf[4*6*numTet+k*6+2];
       pU[0] = normalBuf[4*6*numTet+k*6+3];
       pU[1] = normalBuf[4*6*numTet+k*6+4];
       pU[2] = normalBuf[4*6*numTet+k*6+5];
 
       //DEBUG
       float pDebug[3];
+
       pDebug[0] = dataPointsD[3*id4T1];
       pDebug[1] = dataPointsD[3*id4T1+1];
       pDebug[2] = dataPointsD[3*id4T1+2];
 
-      //BUG FIXME
       if(checkOrientation(pDebug,normalU,pU)){
-         return true;
+         intersectionDetected=true;
       }
 
    }
 
-   return false;
+   return intersectionDetected;
+
 }
 
 __global__ void updateCenterSphere(float*  dataPointsD, size_t* idArrayD, float* sphereBuffer, size_t numberTets){
@@ -116,18 +122,7 @@ __global__ void updateCenterSphere(float*  dataPointsD, size_t* idArrayD, float*
          (sphereBuffer[4*numTet+2] - dataPointsD[3*id1+2])*(sphereBuffer[4*numTet+2] - dataPointsD[3*id1+2]);
       sphereBuffer[4*numTet+3] = sqrt(radius);
 
-      /*
-      if(numTet==1){
-         printf("radius = %f\n",radius);
-         printf("data debug x = %f\n",dataPointsD[3*id1]);
-         printf("data debug y = %f\n",dataPointsD[3*id1+1]);
-         printf("data debug z = %f\n",dataPointsD[3*id1+2]);
-      }
-      */
-
-   } else {
-      //printf ("DEBUG\n");
-   }
+   } 
 
 }
 
@@ -135,24 +130,25 @@ __global__ void updatePlanesTet(float*  dataPointsD, size_t* idArrayD, float* no
 
    size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
 
-   size_t idTetConsidered[4];
-   idTetConsidered[0] = idArrayD[4*numTet];
-   idTetConsidered[1] = idArrayD[4*numTet+1];
-   idTetConsidered[2] = idArrayD[4*numTet+2];
-   idTetConsidered[3] = idArrayD[4*numTet+3];
-
-   size_t idOrientedTetFaces[] = {
-      0,1,2,
-      0,2,3,
-      0,3,1,
-      2,1,3
-   };
-
    if(numTet<numberTets){
+
+      size_t idTetConsidered[4];
+      idTetConsidered[0] = idArrayD[4*numTet];
+      idTetConsidered[1] = idArrayD[4*numTet+1];
+      idTetConsidered[2] = idArrayD[4*numTet+2];
+      idTetConsidered[3] = idArrayD[4*numTet+3];
+
+      size_t idOrientedTetFaces[] = {
+         0,1,2,
+         0,2,3,
+         0,3,1,
+         2,1,3
+      };
+
 
       for(size_t k=0; k<4; k++){
 
-      
+
          size_t id1,id2,id3;
          id1=idTetConsidered[idOrientedTetFaces[3*k]];
          id2=idTetConsidered[idOrientedTetFaces[3*k+1]];
@@ -193,20 +189,8 @@ __global__ void updatePlanesTet(float*  dataPointsD, size_t* idArrayD, float* no
          normalBuf[4*6*numTet+k*6+4] = dataPointsD[3*id1+1];
          normalBuf[4*6*numTet+k*6+5] = dataPointsD[3*id1+2];
 
-         /*
-         if((numTet==1)&&(k==0)){
-
-            printf("DEBUG update px = %f\n",normalBuf[4*6*numTet+k*6+3]);
-            printf("DEBUG update py = %f\n",normalBuf[4*6*numTet+k*6+4]);
-            printf("DEBUG update pz = %f\n",normalBuf[4*6*numTet+k*6+5]);
- 
-         }
-         */
-
       }
 
-   } else {
-      //printf ("DEBUG\n");
    }
 
 }
@@ -214,43 +198,67 @@ __global__ void updatePlanesTet(float*  dataPointsD, size_t* idArrayD, float* no
 __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, float* centerSphereB, float* normalsB, size_t numberTets, bool* intersectionVector){
 
    size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
-   intersectionVector[numTet]=false;
 
-   //DEBUG
-   //if(numTet==2){
+   //if(numTet<numberTets){
+   if(numTet==0){
 
-      //printf("OK1\n");
+      intersectionVector[numTet]=false;
 
-      if(numTet<numberTets){
+      if(numTet>0){ //We have a "small" issue if numTet==0 in the next loop
+
+
          //First part
          for(size_t k=0; k<numTet-1; k++){
-            if(checkSphereIntersection(centerSphereB,&numTet,&k)){
-               //printf("DEB : %u\n", numTet);
-               if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, &numTet,&k)){
+
+            if(checkSphereIntersection(centerSphereB,numTet,k)){
+               if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
                   intersectionVector[numTet]=true;
                   break;
                }
+
             }
+
          }
-         //Second part
-         if(!intersectionVector[numTet]){
-            for(size_t k=numTet+1; k<numberTets; k++){ 
-               if(checkSphereIntersection(centerSphereB,&numTet,&k)){ 
-                  if(checkTetraIntersection(dataPointsD,idArrayD,normalsB, &numTet,&k)){
-                     intersectionVector[numTet]=true;
-                  }
-               }
-            }
-         }
-      } else { 
-         //printf ("DEBUG\n");
+
       }
 
-   //}
+      //Second part
+      if(!intersectionVector[numTet]){
+         for(size_t k=numTet+1; k<numberTets; k++){ 
+            if(checkSphereIntersection(centerSphereB,numTet,k)){ 
+               if(checkTetraIntersection(dataPointsD,idArrayD,normalsB, numTet,k)){
+                  intersectionVector[numTet]=true;
+                  break;
+               }
+
+            }
+         }
+      }
+
+   } 
+
+}
+
+__global__ void debugTestKernel(bool* boolV, size_t numberTets){
+
+   size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
+
+   if(numTet<numberTets){
+
+      boolV[numTet]=false;
+
+      if(boolV[numTet]){
+         printf("DEBUG\n");
+      }
+
+   }
 
 }
 
 MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std::vector<std::vector<size_t> > & tetIdVector, const std::vector<size_t> & associationVectorU) : initialized(false), numPoints(0), verbose(true){
+
+   //Cuda error
+   cudaError_t error;
 
    std::vector<float> array;
 
@@ -273,8 +281,17 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 
          //Copy points to gpu
          size_t size_data = 3*this->numPoints*sizeof(float);
-         cudaMalloc((void **) &(this->data_d), size_data);
-         cudaMemcpy(this->data_d, this->dataArrayBuff, size_data, cudaMemcpyHostToDevice);
+         error=cudaMalloc((void **) &(this->data_d), size_data);
+         if (error != cudaSuccess) {
+            fprintf(stderr, "Issue while initializing data buffer\n");
+            fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+         }
+         error=cudaMemcpy(this->data_d, this->dataArrayBuff, size_data, cudaMemcpyHostToDevice);
+         if (error != cudaSuccess) {
+            fprintf(stderr, "Issue while loading data on GPU\n");
+            fprintf(stderr, "cudaMemcpy failed: %s\n", cudaGetErrorString(error));
+         }
+
 
          //Copy the index of the tetrahedrons
          this->numTets=tetIdVector.size();
@@ -295,24 +312,47 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
          }
 
          size_t size_tetVector = 4*this->numTets*sizeof(size_t);
-         cudaMalloc((void **) &(this->tetId_d), size_tetVector);
-         cudaMemcpy(this->tetId_d, tetVectorPointer, size_tetVector, cudaMemcpyHostToDevice);
+         error=cudaMalloc((void **) &(this->tetId_d), size_tetVector);
+         if (error != cudaSuccess) {
+            fprintf(stderr, "Issue while initializing data buffer (structure)\n");
+            fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+         }
+         error=cudaMemcpy(this->tetId_d, tetVectorPointer, size_tetVector, cudaMemcpyHostToDevice);
+         if (error != cudaSuccess) {
+            fprintf(stderr, "Issue while loading data (structure) on GPU\n");
+            fprintf(stderr, "cudaMemcpy failed: %s\n", cudaGetErrorString(error));
+         }
+
 
          //Copy the association vector
          this->associationVector = associationVectorU;
 
          //Create sphere buffer: (x y z radius)
          size_t size_sphereBuffer = 4*this->numTets*sizeof(float);
-         cudaMalloc((void **) &(this->sphereBuf_d), size_sphereBuffer);
+         error=cudaMalloc((void **) &(this->sphereBuf_d), size_sphereBuffer);
+         if (error != cudaSuccess) {
+            fprintf(stderr, "Issue while initializing buffer of spheres\n");
+            fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+         }
+
 
          //Create normal buffer for tetrahedron (n1 n2 n3 n4 P0)
          size_t size_normalBuffer = 4*6*this->numTets*sizeof(float);
-         cudaMalloc((void **) &(this->normalBuf_d), size_normalBuffer);
+         error=cudaMalloc((void **) &(this->normalBuf_d), size_normalBuffer);
+         if (error != cudaSuccess) {
+            fprintf(stderr, "Issue while initializing normal buffer\n");
+            fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+         }
 
          //Create collision vector (CPU and GPU)
          this->collideVectorArray = new bool[this->numTets];
          size_t size_collideVectorArray = this->numTets*sizeof(bool); 
-         cudaMalloc((void **) &(this->collideVectorArray_d), size_collideVectorArray);
+         error=cudaMalloc((void **) &(this->collideVectorArray_d), size_collideVectorArray);
+         if (error != cudaSuccess) {
+            fprintf(stderr, "Issue while creating output vector\n");
+            fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+         }
+
 
          //Update state
          this->initialized=true;
@@ -389,6 +429,8 @@ bool MeshStructureCollider::updatePointsPositions(const cv::Mat & newPositions){
 
 bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
 
+   cudaError_t error;
+
    cudaDeviceProp prop;
    cudaGetDeviceProperties(&prop,0);
    size_t sizeBlockToUse = sqrt (prop.maxThreadsDim[0]);
@@ -404,19 +446,53 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
 
    //Update sphere
    updateCenterSphere<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->numTets);
+   if ( cudaSuccess != cudaGetLastError() ){ 
+      fprintf(stderr, "Error updating spheres\n");
+   }
    cudaDeviceSynchronize();
+   if ( cudaSuccess != cudaGetLastError() ){ 
+      fprintf(stderr, "Error updating spheres (synchro)\n");
+   }
 
    //Update Normals Buff
    updatePlanesTet<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->normalBuf_d, this->numTets);
+   if ( cudaSuccess != cudaGetLastError() ){ 
+      fprintf(stderr, "Error updating face buffers\n");
+   }
    cudaDeviceSynchronize();
+   if ( cudaSuccess != cudaGetLastError() ){ 
+      fprintf(stderr, "Error updating face buffers(synchro)\n");
+   }
 
    //Check collision
    checkForIntersection<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
-   cudaDeviceSynchronize();
+   if ( cudaSuccess != cudaGetLastError() ){ 
+      fprintf(stderr, "Error collision\n");
+   }
+   error = cudaDeviceSynchronize();
+   if ( cudaSuccess != error ){ 
+      fprintf(stderr, "Error collision(synchro)\n");
+      fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
+
+   }
+
+   /*
+      deburgTestKernel<<<dimGrid, dimBlock>>>(this->collideVectorArray_d, this->numTets);
+      cudaDeviceSynchronize();
+
+    */
 
    //Get results
-   size_t sizeResult = sizeof(bool)*this->numTets;
-   cudaMemcpy(collideVectorArray, collideVectorArray_d, sizeResult, cudaMemcpyDeviceToHost);
+   size_t sizeResult = this->numTets * sizeof(bool);
+   debugTestKernel<<<dimGrid, dimBlock>>>(this->collideVectorArray_d, this->numTets);
+   cudaDeviceSynchronize();
+
+   error = cudaMemcpy(collideVectorArray, this->collideVectorArray_d, sizeResult, cudaMemcpyDeviceToHost);
+   if (error != cudaSuccess) {
+      fprintf(stderr, "Issue while saving the collision vector\n");
+      fprintf(stderr, "cudaMemcpy failed: %s\n", cudaGetErrorString(error));
+   }
+
    for(size_t k=0; k<this->numTets;k++){
       collisionList.at(k)=collideVectorArray[k];
    }
