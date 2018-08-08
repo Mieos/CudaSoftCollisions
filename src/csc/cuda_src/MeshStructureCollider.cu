@@ -50,52 +50,111 @@ __device__ bool checkOrientation(float* Ptest, float* Nm, float* Pu){
 
 }
 
+__device__ void crossP(float* v1, float* v2, float* res){
+
+   res[0] = v1[1]*v2[2] - v1[2]*v2[1];
+   res[1] = v1[2]*v2[0] - v1[0]*v2[2];
+   res[2] = v1[0]*v2[1] - v1[1]*v2[0];
+
+}
+
 __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, float* normalBuf, size_t s1, size_t s2){
 
-   size_t id1T1 = idArrayD[4*s1];
-   size_t id2T1 = idArrayD[4*s1+1];
-   size_t id3T1 = idArrayD[4*s1+2];
-   size_t id4T1 = idArrayD[4*s1+3];
+   //Real test
+   float normalU[3];
+   float pU[3];
+   float pointTested[3];
 
-   size_t numTet = s1;
+   bool allOK=true;
 
-   size_t debugPoints[] = {
-      idArrayD[4*s1+3],
-      idArrayD[4*s1+1],
-      idArrayD[4*s1+2],
-      idArrayD[4*s1],
+   //Test all points of tet2 with faces of tet1
+   for(size_t k=0; k<4;k++){
+      normalU[0] = normalBuf[4*6*s1+k*6];
+      normalU[1] = normalBuf[4*6*s1+k*6+1];
+      normalU[2] = normalBuf[4*6*s1+k*6+2];
+      pU[0] = normalBuf[4*6*s1+k*6+3];
+      pU[1] = normalBuf[4*6*s1+k*6+4];
+      pU[2] = normalBuf[4*6*s1+k*6+5];
 
-   };
+      for(size_t i=0; i<4; i++){
 
-   //Dummy test for now
-   bool intersectionDetected=false; 
+         size_t idP = idArrayD[4*s2+i];
+         pointTested[0]=dataPointsD[3*idP];
+         pointTested[1]=dataPointsD[3*idP+1];
+         pointTested[2]=dataPointsD[3*idP+2];
 
-   for(size_t k=0; k<4; k++){
+         if(checkOrientation(pointTested,normalU,pU)){
+            allOK=false;
+            break;
+         }
 
-      float normalU[3];
-      float pU[3];
-
-      normalU[0] = -normalBuf[4*6*numTet+k*6];
-      normalU[1] = -normalBuf[4*6*numTet+k*6+1];
-      normalU[2] = -normalBuf[4*6*numTet+k*6+2];
-      pU[0] = normalBuf[4*6*numTet+k*6+3];
-      pU[1] = normalBuf[4*6*numTet+k*6+4];
-      pU[2] = normalBuf[4*6*numTet+k*6+5];
-
-      //DEBUG
-      float pDebug[3];
-
-      pDebug[0] = dataPointsD[3*id4T1];
-      pDebug[1] = dataPointsD[3*id4T1+1];
-      pDebug[2] = dataPointsD[3*id4T1+2];
-
-      if(checkOrientation(pDebug,normalU,pU)){
-         intersectionDetected=true;
       }
 
+      if(!allOK){
+         break;
+      }
+   
    }
 
-   return intersectionDetected;
+   if(allOK){
+      return false;
+   }
+
+   allOK=true;
+
+   //Test all points of tet1 with faces of tet2
+   for(size_t k=0; k<4;k++){
+      normalU[0] = normalBuf[4*6*s2+k*6];
+      normalU[1] = normalBuf[4*6*s2+k*6+1];
+      normalU[2] = normalBuf[4*6*s2+k*6+2];
+      pU[0] = normalBuf[4*6*s2+k*6+3];
+      pU[1] = normalBuf[4*6*s2+k*6+4];
+      pU[2] = normalBuf[4*6*s2+k*6+5];
+
+      for(size_t i=0; i<4; i++){
+
+         size_t idP = idArrayD[4*s1+i];
+         pointTested[0]=dataPointsD[3*idP];
+         pointTested[1]=dataPointsD[3*idP+1];
+         pointTested[2]=dataPointsD[3*idP+2];
+
+         if(checkOrientation(pointTested,normalU,pU)){
+            allOK=false;
+            break;
+         }
+
+      }
+
+      if(!allOK){
+         break;
+      }
+   
+   }
+
+   if(allOK){
+      return false;
+   }
+
+   //Cross product
+   float p1_v[3];
+   float p2_v[3];
+   float crossP_v[3];
+   for(size_t k=0; k<4; k++){
+      size_t idP1 = idArrayD[4*s1+k];
+      p1_v[0]=dataPointsD[3*idP1];
+      p1_v[1]=dataPointsD[3*idP1+1];
+      p1_v[2]=dataPointsD[3*idP1+2];
+      for(size_t i=0; i<4; i++){
+         size_t idP2 = idArrayD[4*s2+i];
+         p2_v[0]=dataPointsD[3*idP2];
+         p2_v[1]=dataPointsD[3*idP2+1];
+         p2_v[2]=dataPointsD[3*idP2+2];
+         crossP(p1_v,p2_v,crossP_v);
+      }
+   }
+
+   //TODO : not finished yet..
+   return false;
 
 }
 
