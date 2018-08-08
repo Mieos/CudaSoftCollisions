@@ -22,6 +22,7 @@ class MeshStructureCollider {
       float* data_d;
       size_t* tetId_d;
       float* sphereBuf_d;
+      float* normalBuf_d;
       bool* collideVectorArray;
       bool* collideVectorArray_d;
       std::vector<size_t> associationVector;
