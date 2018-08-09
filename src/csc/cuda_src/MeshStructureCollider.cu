@@ -93,7 +93,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       if(!allOK){
          break;
       }
-   
+
    }
 
    if(allOK){
@@ -128,7 +128,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       if(!allOK){
          break;
       }
-   
+
    }
 
    if(allOK){
@@ -139,22 +139,111 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
    float p1_v[3];
    float p2_v[3];
    float crossP_v[3];
-   for(size_t k=0; k<4; k++){
-      size_t idP1 = idArrayD[4*s1+k];
+   for(size_t m=0; m<4; m++){
+      
+      size_t idP1 = idArrayD[4*s1+m];
       p1_v[0]=dataPointsD[3*idP1];
       p1_v[1]=dataPointsD[3*idP1+1];
       p1_v[2]=dataPointsD[3*idP1+2];
-      for(size_t i=0; i<4; i++){
-         size_t idP2 = idArrayD[4*s2+i];
+      
+      for(size_t n=0; n<4; n++){
+         
+         size_t idP2 = idArrayD[4*s2+n];
          p2_v[0]=dataPointsD[3*idP2];
          p2_v[1]=dataPointsD[3*idP2+1];
          p2_v[2]=dataPointsD[3*idP2+2];
+
+         //Cross product
          crossP(p1_v,p2_v,crossP_v);
+
+         pU[0] = p1_v[0];
+         pU[1] = p1_v[1];
+         pU[2] = p1_v[2];
+
+         //Test 1
+         int results_inter1 = -2;
+
+         for(size_t i=0; i<4; i++){
+
+            size_t idP = idArrayD[4*s1+i];
+            pointTested[0]=dataPointsD[3*idP];
+            pointTested[1]=dataPointsD[3*idP+1];
+            pointTested[2]=dataPointsD[3*idP+2];
+
+            //Update tests
+            if(checkOrientation(pointTested,crossP_v,pU)){
+               if(results_inter1==-2){
+                  results_inter1=1;
+               } else if(results_inter1==-1){
+                  results_inter1=0;
+                  break;
+               } else if(results_inter1==1){
+                  //OK nothing
+               }
+            } else {
+               if(results_inter1==-2){
+                  results_inter1=-1;
+               } else if(results_inter1==-1){
+                  //OK nothing
+               } else if(results_inter1==1){
+                  results_inter1=0;
+                  break;
+               }
+            }
+
+         }
+
+         //If points are on one sides
+         if(results_inter1==0){
+            continue;
+         }
+
+         //Test2
+         int results_inter2 = -2;
+
+         for(size_t i=0; i<4; i++){
+
+            size_t idP = idArrayD[4*s2+i];
+            pointTested[0]=dataPointsD[3*idP];
+            pointTested[1]=dataPointsD[3*idP+1];
+            pointTested[2]=dataPointsD[3*idP+2];
+
+            //Update tests
+            if(checkOrientation(pointTested,crossP_v,pU)){
+               if(results_inter2==-2){
+                  results_inter2=1;
+               } else if(results_inter2==-1){
+                  results_inter2=0;
+                  break;
+               } else if(results_inter2==1){
+                  //OK nothing
+               }
+            } else {
+               if(results_inter2==-2){
+                  results_inter2=-1;
+               } else if(results_inter2==-1){
+                  //OK nothing
+               } else if(results_inter2==1){
+                  results_inter2=0;
+                  break;
+               }
+            }
+
+         }
+
+         //If points are on one sides
+         if(results_inter2==0){
+            continue;
+         }
+
+         if(results_inter1*results_inter2<0){
+            return false;
+         }
+
       }
    }
 
-   //TODO : not finished yet..
-   return false;
+   return true;
 
 }
 
