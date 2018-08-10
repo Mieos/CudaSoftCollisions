@@ -14,7 +14,7 @@ int main(int argc, char *argv[]){
    
    //Icosaheron
    //path = path + "/meshes/torus_vol.vtk";
-   path = path + "/meshes/torus_vol_bis.vtk";
+   path = path + "/meshes/triangularDipyramid_volume.vtk";
    
    std::cout << "Reading: " << path << std::endl;
 

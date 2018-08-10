@@ -240,7 +240,7 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
       pointsTet[idF1[2]]=true;
       pointsTet[pointIDout]=true;
    
-      if(MeshHelpers::checkDirectVectorOrientation(v1,v2,v3)){
+      if(!MeshHelpers::checkDirectVectorOrientation(v1,v2,v3)){
       
          //OK
          vectorInter.push_back(idF1[1]);
@@ -249,8 +249,7 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
 
       } else {
       
-         //Reorder
-      
+         //Reorder      
          vectorInter.push_back(idF1[2]);
          vectorInter.push_back(idF1[1]);
          vectorInter.push_back(pointIDout);

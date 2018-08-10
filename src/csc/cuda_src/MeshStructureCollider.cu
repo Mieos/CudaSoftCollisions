@@ -26,7 +26,7 @@ __device__ bool checkSphereIntersection(float* centerSphereID, size_t s1, size_t
 
 } 
 
-__device__ bool checkOrientation(float* Ptest, float* Nm, float* Pu){
+__device__ int checkOrientation(float* Ptest, float* Nm, float* Pu){
 
    float vt2[3];
    for(size_t k=0; k<3; k++){
@@ -36,16 +36,15 @@ __device__ bool checkOrientation(float* Ptest, float* Nm, float* Pu){
 
    float dotP = Nm[0]*vt2[0] + Nm[1]*vt2[1] + Nm[2]*vt2[2];
 
-   if(dotP>0){
 
-      if(dotP>EPSILON_d){
-         return true;
-      } else {
-         return false; 
-      }
-
+   if(abs(dotP)<EPSILON_d){ 
+      return 0;
    } else {
-      return false;
+      if(dotP>0){
+         return 1;
+      } else {
+         return -1;
+      }
    }
 
 }
@@ -58,16 +57,56 @@ __device__ void crossP(float* v1, float* v2, float* res){
 
 }
 
+__device__ bool checkSameTet(size_t* idArrayD, size_t s1, size_t s2){
+
+   bool isSame=true;
+   for(size_t k=0; k<4; k++){
+      bool isSameInter=false;
+      for(size_t i=0; i<4; i++){
+         if(idArrayD[4*s1+k]==idArrayD[4*s2+i]){
+            isSameInter=true;
+            break;
+         }
+      }
+      if(!isSameInter){
+         isSame=false;
+         break;
+      }
+   }
+
+   return isSame;
+}
+
 __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, float* normalBuf, size_t s1, size_t s2){
+
+   /*
+   printf("s1 = %u\n", s1);
+   printf("s2 = %u\n", s2);
+
+   printf ("TET 1 || %u , ", idArrayD[4*s1]);
+   printf (" %u , ", idArrayD[4*s1+1]);
+   printf (" %u , ", idArrayD[4*s1+2]);
+   printf (" %u \n", idArrayD[4*s1+3]);
+ 
+   printf ("TET 2 || %u , ", idArrayD[4*s2]);
+   printf (" %u , ", idArrayD[4*s2+1]);
+   printf (" %u , ", idArrayD[4*s2+2]);
+   printf (" %u \n", idArrayD[4*s2+3]);   
+   */
+
+   //printf("Test init tetra\n");
+   //printf("Tet1 : %u , %u , %u, %u \n",idArrayD[4*s1], idArrayD[4*s1+1], idArrayD[4*s1+2], idArrayD[4*s1+3]);
+   //printf("Tet2 : %u , %u , %u, %u \n",idArrayD[4*s2], idArrayD[4*s2+1], idArrayD[4*s2+2], idArrayD[4*s2+3]);
 
    //Real test
    float normalU[3];
    float pU[3];
    float pointTested[3];
 
-   bool allOK=true;
+   bool outTestSuccess=false;
 
    //Test all points of tet2 with faces of tet1
+   size_t numPos=0;
    for(size_t k=0; k<4;k++){
       normalU[0] = normalBuf[4*6*s1+k*6];
       normalU[1] = normalBuf[4*6*s1+k*6+1];
@@ -76,6 +115,8 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       pU[1] = normalBuf[4*6*s1+k*6+4];
       pU[2] = normalBuf[4*6*s1+k*6+5];
 
+      size_t numNegInter = 0;
+
       for(size_t i=0; i<4; i++){
 
          size_t idP = idArrayD[4*s2+i];
@@ -83,26 +124,29 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
          pointTested[1]=dataPointsD[3*idP+1];
          pointTested[2]=dataPointsD[3*idP+2];
 
-         if(checkOrientation(pointTested,normalU,pU)){
-            allOK=false;
-            break;
+         int res_test = checkOrientation(pointTested,normalU,pU);
+         if(res_test<0){
+            numNegInter++;
+         } else if(res_test>0){
+            numPos++;
          }
 
       }
 
-      if(!allOK){
-         break;
+      if(numNegInter==0){ //All points are at least in the positive side of one face 
+         //printf("OUTSIDE\n");
+         outTestSuccess=true;
       }
 
    }
 
-   if(allOK){
-      return false;
+   if(numPos == 0){ //The tet is inside the other
+      //printf("INSIDE\n");
+      return true;      
    }
 
-   allOK=true;
-
    //Test all points of tet1 with faces of tet2
+   numPos=0;
    for(size_t k=0; k<4;k++){
       normalU[0] = normalBuf[4*6*s2+k*6];
       normalU[1] = normalBuf[4*6*s2+k*6+1];
@@ -111,6 +155,9 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       pU[1] = normalBuf[4*6*s2+k*6+4];
       pU[2] = normalBuf[4*6*s2+k*6+5];
 
+      size_t numNegInter = 0;
+     
+      //printf("Face = %u\n", k);
       for(size_t i=0; i<4; i++){
 
          size_t idP = idArrayD[4*s1+i];
@@ -118,36 +165,48 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
          pointTested[1]=dataPointsD[3*idP+1];
          pointTested[2]=dataPointsD[3*idP+2];
 
-         if(checkOrientation(pointTested,normalU,pU)){
-            allOK=false;
-            break;
+         int res_test = checkOrientation(pointTested,normalU,pU);
+         if(res_test<0){
+            //printf("Num point Neg = %u\n", i);
+            numNegInter++;   
+         } else if (res_test>0){
+            //printf("Num point Pos = %u\n", i);
+            numPos++;
          }
 
       }
 
-      if(!allOK){
-         break;
+      if(numNegInter==0){ //All points are at least in the positive side of one face 
+         //printf("OUTSIDE\n");
+         outTestSuccess=true;
       }
 
    }
 
-   if(allOK){
+   if(numPos == 0){ //The tet is inside the other
+      //printf("INSIDE\n");
+      return true;      
+   }
+
+   //This test has to be done only after the test concerning the inside test is done
+   if(outTestSuccess){
       return false;
    }
 
+   //TODO test that part
    //Cross product
    float p1_v[3];
    float p2_v[3];
    float crossP_v[3];
    for(size_t m=0; m<4; m++){
-      
+
       size_t idP1 = idArrayD[4*s1+m];
       p1_v[0]=dataPointsD[3*idP1];
       p1_v[1]=dataPointsD[3*idP1+1];
       p1_v[2]=dataPointsD[3*idP1+2];
-      
+
       for(size_t n=0; n<4; n++){
-         
+
          size_t idP2 = idArrayD[4*s2+n];
          p2_v[0]=dataPointsD[3*idP2];
          p2_v[1]=dataPointsD[3*idP2+1];
@@ -251,12 +310,13 @@ __global__ void updateCenterSphere(float*  dataPointsD, size_t* idArrayD, float*
 
    size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
 
-   size_t id1 = idArrayD[4*numTet];
-   size_t id2 = idArrayD[4*numTet+1];
-   size_t id3 = idArrayD[4*numTet+2];
-   size_t id4 = idArrayD[4*numTet+3];
-
    if(numTet<numberTets){
+
+      size_t id1 = idArrayD[4*numTet];
+      size_t id2 = idArrayD[4*numTet+1];
+      size_t id3 = idArrayD[4*numTet+2];
+      size_t id4 = idArrayD[4*numTet+3];
+
 
       //Coordinate
       sphereBuffer[4*numTet] = (dataPointsD[3*id1] + dataPointsD[3*id2] + dataPointsD[3*id3] + dataPointsD[3*id4])/4.0;
@@ -293,9 +353,16 @@ __global__ void updatePlanesTet(float*  dataPointsD, size_t* idArrayD, float* no
          2,1,3
       };
 
+      //printf("numTet = %u\n",numTet);
 
       for(size_t k=0; k<4; k++){
-
+      //for(size_t k=3; k<4; k++){
+      
+         /*
+         printf("ID1 = %u\n",idTetConsidered[idOrientedTetFaces[3*k]]);
+         printf("ID2 = %u\n",idTetConsidered[idOrientedTetFaces[3*k+1]]);
+         printf("ID3 = %u\n",idTetConsidered[idOrientedTetFaces[3*k+2]]);
+         */
 
          size_t id1,id2,id3;
          id1=idTetConsidered[idOrientedTetFaces[3*k]];
@@ -347,21 +414,26 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
 
    size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
 
-   //if(numTet<numberTets){
-   if(numTet==0){
+
+   if(numTet<numberTets){
 
       intersectionVector[numTet]=false;
 
+      //if(numTet ==0){ //FIXME
+
       if(numTet>0){ //We have a "small" issue if numTet==0 in the next loop
 
-
          //First part
-         for(size_t k=0; k<numTet-1; k++){
+         for(size_t k=0; k<numTet; k++){
 
-            if(checkSphereIntersection(centerSphereB,numTet,k)){
-               if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
-                  intersectionVector[numTet]=true;
-                  break;
+            if(!checkSameTet(idArrayD,numTet,k)){
+
+               if(checkSphereIntersection(centerSphereB,numTet,k)){
+                  if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
+                     intersectionVector[numTet]=true;
+                     break;
+                  }
+
                }
 
             }
@@ -373,31 +445,58 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
       //Second part
       if(!intersectionVector[numTet]){
          for(size_t k=numTet+1; k<numberTets; k++){ 
-            if(checkSphereIntersection(centerSphereB,numTet,k)){ 
-               if(checkTetraIntersection(dataPointsD,idArrayD,normalsB, numTet,k)){
-                  intersectionVector[numTet]=true;
-                  break;
-               }
 
+            if(!checkSameTet(idArrayD,numTet,k)){
+
+               if(checkSphereIntersection(centerSphereB,numTet,k)){ 
+                  if(checkTetraIntersection(dataPointsD,idArrayD,normalsB, numTet,k)){
+                     intersectionVector[numTet]=true;
+                     break;
+                  }
+               } 
             }
          }
       }
 
-   } 
+      //} //FIXME
+
+      /*
+      if(intersectionVector[numTet]){
+         printf("Intersecting : %u\n", numTet);
+      } else {
+         printf("NOT intersecting : %u\n", numTet);
+      }
+      */
+      
+
+   }
 
 }
 
-__global__ void debugTestKernel(bool* boolV, size_t numberTets){
+__global__ void debugTestKernel(size_t* tetIndex, size_t numberTets){
 
    size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
 
    if(numTet<numberTets){
 
-      boolV[numTet]=false;
+      size_t i1, i2, i3, i4;
+      i1 = tetIndex[4*numTet];
+      i2 = tetIndex[4*numTet+1];
+      i3 = tetIndex[4*numTet+2];
+      i4 = tetIndex[4*numTet+3];
+      //printf("Numtet = %u || %u , %u , %u , %u \n", numTet, i1, i2, i3, i4);
+      printf(" i1 = %u\n", i1);
+      printf(" i2 = %u\n", i2);
+      printf(" i3 = %u\n", i3);
+      printf(" i4 = %u\n", i4);
 
-      if(boolV[numTet]){
+      /*
+         boolV[numTet]=false;
+
+         if(boolV[numTet]){
          printf("DEBUG\n");
-      }
+         }
+       */
 
    }
 
@@ -459,18 +558,25 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 
          }
 
+         //DEBUG
+         /*
+            for(size_t k=0; k<this->numTets; k++){ 
+            std::cout << "NUM = " << k << " || Id = " << tetVectorPointer[4*k] << " , " << tetVectorPointer[4*k+1] << " , " << tetVectorPointer[4*k+2] << " , " << tetVectorPointer[4*k+3] << std::endl;
+            }
+          */
+
          size_t size_tetVector = 4*this->numTets*sizeof(size_t);
          error=cudaMalloc((void **) &(this->tetId_d), size_tetVector);
          if (error != cudaSuccess) {
             fprintf(stderr, "Issue while initializing data buffer (structure)\n");
             fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
          }
+
          error=cudaMemcpy(this->tetId_d, tetVectorPointer, size_tetVector, cudaMemcpyHostToDevice);
          if (error != cudaSuccess) {
             fprintf(stderr, "Issue while loading data (structure) on GPU\n");
             fprintf(stderr, "cudaMemcpy failed: %s\n", cudaGetErrorString(error));
          }
-
 
          //Copy the association vector
          this->associationVector = associationVectorU;
@@ -500,7 +606,6 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
             fprintf(stderr, "Issue while creating output vector\n");
             fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
          }
-
 
          //Update state
          this->initialized=true;
@@ -624,16 +729,12 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
 
    }
 
-   /*
-      deburgTestKernel<<<dimGrid, dimBlock>>>(this->collideVectorArray_d, this->numTets);
-      cudaDeviceSynchronize();
 
-    */
+   //debugTestKernel<<<dimGrid, dimBlock>>>(this->tetId_d, this->numTets);
+   //cudaDeviceSynchronize();
 
    //Get results
    size_t sizeResult = this->numTets * sizeof(bool);
-   debugTestKernel<<<dimGrid, dimBlock>>>(this->collideVectorArray_d, this->numTets);
-   cudaDeviceSynchronize();
 
    error = cudaMemcpy(collideVectorArray, this->collideVectorArray_d, sizeResult, cudaMemcpyDeviceToHost);
    if (error != cudaSuccess) {

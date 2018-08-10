@@ -25,7 +25,7 @@ int main(int argc, char *argv[]){
 
    //Icosaheron
    //path = path + "/meshes/sphere_volume.vtk";
-   path = path + "/meshes/torus_vol_highres.vtk";
+   path = path + "/meshes/triangularDipyramid_volume.vtk";
    std::cout << "Reading: " << path << std::endl;
 
    //Test model extraction
@@ -114,8 +114,14 @@ int main(int argc, char *argv[]){
       pointsID.push_back(it->first);
       double pUsedF[3];
       size_t nP = it->first;
+      std::cout << "DEBUG nP = " << nP << std::endl;
       msh->GetPoints()->GetPoint(nP,pUsedF);
-      points->InsertNextPoint(pUsedF[0],pUsedF[1],pUsedF[2]);
+      if(nP==0){
+         std::cout << (pUsedF[0]) << " , " << (pUsedF[1]) << " , " << (pUsedF[1]) << std::endl;
+         points->InsertNextPoint(-0.0375624,0.19518,-0.132803);
+      } else {
+         points->InsertNextPoint(pUsedF[0],pUsedF[1],pUsedF[2]);
+      }
    }
 
    //Faces
