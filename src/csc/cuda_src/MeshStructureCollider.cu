@@ -79,6 +79,8 @@ __device__ bool checkSameTet(size_t* idArrayD, size_t s1, size_t s2){
 
 __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, float* normalBuf, size_t s1, size_t s2){
 
+   //printf("OK 0 !\n");
+
    /*
    printf("s1 = %u\n", s1);
    printf("s2 = %u\n", s2);
@@ -134,14 +136,13 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       }
 
       if(numNegInter==0){ //All points are at least in the positive side of one face 
-         //printf("OUTSIDE\n");
          outTestSuccess=true;
       }
 
    }
 
    if(numPos == 0){ //The tet is inside the other
-      //printf("INSIDE\n");
+      //printf("INSIDE 0 \n");
       return true;      
    }
 
@@ -177,7 +178,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       }
 
       if(numNegInter==0){ //All points are at least in the positive side of one face 
-         //printf("OUTSIDE\n");
+         //printf("face = %u\n",k);
          outTestSuccess=true;
       }
 
@@ -190,8 +191,11 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
 
    //This test has to be done only after the test concerning the inside test is done
    if(outTestSuccess){
+      //printf("OUSIDE 1 \n");
       return false;
    }
+
+   //printf("OK!\n");
 
    //TODO test that part
    //Cross product
