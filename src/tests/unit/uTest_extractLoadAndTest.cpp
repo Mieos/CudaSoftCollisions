@@ -86,20 +86,23 @@ int main(int argc, char *argv[]){
    auto diffCollide = endCollide - startCollide;
    std::cout << std::chrono::duration <double, std::milli> (diffCollide).count() << " ms" << std::endl;
    //Check results
+   /*
    if(collideVector.at(1066)){
       std::cout << "BUG" << std::endl;
    } else { 
       std::cout << "OK" << std::endl;
    }
+   */
 
    for(size_t k=0; k<collideVector.size();k++){
       if(collideVector.at(k)){
-         //std::cout << "Collide : " << k << std::endl;
+         std::cout << "Collide : " << k << std::endl;
       } else {
          //std::cout << "NOPE : " << k << std::endl;
       }
    }
 
+   /*
    //DEBUG
    cv::Mat debugPoints = cv::Mat::zeros(8,3,CV_32FC1);
 
@@ -120,14 +123,6 @@ int main(int argc, char *argv[]){
    float px, py, pz;
    for(size_t k =0; k<4; k++){
       size_t idP = tetIdVector.at(1066).at(k);
-      /*
-      auto findT = std::find(associationResults.begin(), associationResults.end(), idTet);
-      size_t idFind = findT - associationResults.begin();
-      float px = pointsMat.at<float>(idFind,0);
-      float py = pointsMat.at<float>(idFind,1);
-      float pz = pointsMat.at<float>(idFind,2);
-      */
-   
       px = pointsMat.at<float>(associationResults.at(idP),0);
       py = pointsMat.at<float>(associationResults.at(idP),1);
       pz = pointsMat.at<float>(associationResults.at(idP),2);
@@ -138,28 +133,12 @@ int main(int argc, char *argv[]){
       std:: cout << associationResults.at(idP) << " , "; //"(" << idFind << ")"<< " , ";
 
    }
-   //V2(debug)
-   /*
-   px = pointsMat.at<float>(associationResults.at( debug_pts1[3]),0);
-   py = pointsMat.at<float>(associationResults.at( debug_pts1[3]),1);
-   pz = pointsMat.at<float>(associationResults.at( debug_pts1[3]),2);
-   debugPoints.at<float>(3,0) = px;
-   debugPoints.at<float>(3,1) = py;
-   debugPoints.at<float>(3,2) = pz;
-   */ 
    std::cout << std::endl;
   
 
    std::cout << "TET2 = ";
    for(size_t k =0; k<4; k++){
       size_t idP = tetIdVector.at(1109).at(k);
-      /*
-      auto findT = std::find(associationResults.begin(), associationResults.end(), idTet);
-      size_t idFind = findT - associationResults.begin();
-      float px = pointsMat.at<float>(idFind,0);
-      float py = pointsMat.at<float>(idFind,1);
-      float pz = pointsMat.at<float>(idFind,2);
-      */
       px = pointsMat.at<float>(associationResults.at(idP),0);
       py = pointsMat.at<float>(associationResults.at(idP),1);
       pz = pointsMat.at<float>(associationResults.at(idP),2);
@@ -169,15 +148,6 @@ int main(int argc, char *argv[]){
 
       std:: cout << associationResults.at(idP)<< "(" << idP << ")" <<  " , "; //<< "(" << idFind << ")"<< " , ";
    } 
-   //V2
-   /*
-   px = pointsMat.at<float>(associationResults.at( debug_pts2[3]),0);
-   py = pointsMat.at<float>(associationResults.at( debug_pts2[3]),1);
-   pz = pointsMat.at<float>(associationResults.at( debug_pts2[3]),2);
-   debugPoints.at<float>(7,0) = px;
-   debugPoints.at<float>(7,1) = py;
-   debugPoints.at<float>(7,2) = pz;
-   */
    std::cout << std::endl;
 
    size_t idOrientedTetFaces[] = {
@@ -225,9 +195,6 @@ int main(int argc, char *argv[]){
       std::cout << "tet2 : OK orientation" << std::endl;
    }
 
-
-
-
    vtkSmartPointer< vtkPoints > points = vtkSmartPointer< vtkPoints > :: New();
    for(size_t k=0; k<8; k++){
       points->InsertNextPoint(debugPoints.at<float>(k,0),debugPoints.at<float>(k,1),debugPoints.at<float>(k,2));
@@ -264,6 +231,7 @@ int main(int argc, char *argv[]){
    plyWriter->SetInputData(polyData);
 #endif
    plyWriter->Write();
+   */
 
    delete msc;
 

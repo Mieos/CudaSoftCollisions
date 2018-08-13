@@ -374,7 +374,8 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
          }
 
          if((results_inter1==-2)||(results_inter2==-2)){
-            printf("BUG (important)\n");
+            //printf("BUG (important)\n");//FIXME All the points are ON the plane WTF
+            continue;
          }
 
          //printf("At least, there is a check\n");
