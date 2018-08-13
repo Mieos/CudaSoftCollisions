@@ -1,0 +1,27 @@
+ply
+format ascii 1.0
+comment VTK generated PLY File
+obj_info vtkPolyData points and polygons: vtk4.0
+element vertex 8
+property float x
+property float y
+property float z
+element face 8
+property list uchar int vertex_indices
+end_header
+7.67082 6.38652 -0.609013 
+7.64743 6.36343 -1.01176 
+7.47667 6.59121 -0.809591 
+7.0535 6.10258 -0.86343 
+7.68075 6.26099 -1.34388 
+7.47714 6.45825 -1.54382 
+7.44727 6.56282 -1.21144 
+7.42182 5.96987 -1.10213 
+3 0 1 2 
+3 0 2 3 
+3 0 3 1 
+3 2 1 3 
+3 4 5 6 
+3 4 6 7 
+3 4 7 5 
+3 6 5 7 

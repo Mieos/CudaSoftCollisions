@@ -2,7 +2,9 @@
 #include <iostream>
 #include <math.h> 
 
-#define EPSILON_d 0.0000001f
+#define EPSILON_d 0.001f
+
+__constant__ size_t edgesID_d[12];
 
 __device__ bool checkSphereIntersection(float* centerSphereID, size_t s1, size_t s2){
 
@@ -81,20 +83,22 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
 
    //printf("OK 0 !\n");
 
-   /*
-   printf("s1 = %u\n", s1);
-   printf("s2 = %u\n", s2);
+   //printf("s1 = %u\n", s1);
+   //printf("s2 = %u\n", s2);
 
+   /*
    printf ("TET 1 || %u , ", idArrayD[4*s1]);
    printf (" %u , ", idArrayD[4*s1+1]);
    printf (" %u , ", idArrayD[4*s1+2]);
    printf (" %u \n", idArrayD[4*s1+3]);
  
-   printf ("TET 2 || %u , ", idArrayD[4*s2]);
-   printf (" %u , ", idArrayD[4*s2+1]);
-   printf (" %u , ", idArrayD[4*s2+2]);
-   printf (" %u \n", idArrayD[4*s2+3]);   
    */
+   if(s2==1109){
+      printf ("TET 2 || %u , ", idArrayD[4*s2]);
+      printf (" %u , ", idArrayD[4*s2+1]);
+      printf (" %u , ", idArrayD[4*s2+2]);
+      printf (" %u \n", idArrayD[4*s2+3]);   
+   }
 
    //printf("Test init tetra\n");
    //printf("Tet1 : %u , %u , %u, %u \n",idArrayD[4*s1], idArrayD[4*s1+1], idArrayD[4*s1+2], idArrayD[4*s1+3]);
@@ -178,6 +182,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       }
 
       if(numNegInter==0){ //All points are at least in the positive side of one face 
+         //printf("numPos = %u\n",numPos);
          //printf("face = %u\n",k);
          outTestSuccess=true;
       }
@@ -195,33 +200,47 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       return false;
    }
 
-   //printf("OK!\n");
+   //printf("WTF! %u\n",s2);
 
-   //TODO test that part
+   size_t edgesID_d[] = {
+         0,1,
+         1,2,
+         2,0,
+         0,3,
+         1,3,
+         2,3
+   };
+
+   //TODO test that part 
    //Cross product
+
    float p1_v[3];
    float p2_v[3];
    float crossP_v[3];
-   for(size_t m=0; m<4; m++){
+   for(size_t m=0; m<6; m++){
 
-      size_t idP1 = idArrayD[4*s1+m];
-      p1_v[0]=dataPointsD[3*idP1];
-      p1_v[1]=dataPointsD[3*idP1+1];
-      p1_v[2]=dataPointsD[3*idP1+2];
+      size_t idP1_1 = idArrayD[4*s1+edgesID_d[2*m]];
+      size_t idP1_2 = idArrayD[4*s1+edgesID_d[2*m+1]];
+      
+      p1_v[0]=dataPointsD[3*idP1_2] - dataPointsD[3*idP1_1];
+      p1_v[1]=dataPointsD[3*idP1_2+1] - dataPointsD[3*idP1_1+1];
+      p1_v[2]=dataPointsD[3*idP1_2+2] - dataPointsD[3*idP1_1+2];
 
-      for(size_t n=0; n<4; n++){
+      pU[0] = dataPointsD[3*idP1_2];
+      pU[1] = dataPointsD[3*idP1_2+1];
+      pU[2] = dataPointsD[3*idP1_2+2];;
 
-         size_t idP2 = idArrayD[4*s2+n];
-         p2_v[0]=dataPointsD[3*idP2];
-         p2_v[1]=dataPointsD[3*idP2+1];
-         p2_v[2]=dataPointsD[3*idP2+2];
+      for(size_t n=0; n<6; n++){
+
+         size_t idP2_1 = idArrayD[4*s2+edgesID_d[2*n]];
+         size_t idP2_2 = idArrayD[4*s2+edgesID_d[2*n+1]];
+
+         p2_v[0]=dataPointsD[3*idP2_2] - dataPointsD[3*idP2_1];
+         p2_v[1]=dataPointsD[3*idP2_2+1] - dataPointsD[3*idP2_1];
+         p2_v[2]=dataPointsD[3*idP2_2+2] - dataPointsD[3*idP2_1];
 
          //Cross product
          crossP(p1_v,p2_v,crossP_v);
-
-         pU[0] = p1_v[0];
-         pU[1] = p1_v[1];
-         pU[2] = p1_v[2];
 
          //Test 1
          int results_inter1 = -2;
@@ -304,7 +323,10 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
          }
 
       }
+
    }
+
+   printf("WTFn2\n");
 
    return true;
 
@@ -423,7 +445,7 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
 
       intersectionVector[numTet]=false;
 
-      //if(numTet ==0){ //FIXME
+      if(numTet ==1066){ //FIXME
 
       if(numTet>0){ //We have a "small" issue if numTet==0 in the next loop
 
@@ -435,6 +457,7 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
                if(checkSphereIntersection(centerSphereB,numTet,k)){
                   if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
                      intersectionVector[numTet]=true;
+                     printf("DEBUG = %u\n",k);
                      break;
                   }
 
@@ -455,6 +478,7 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
                if(checkSphereIntersection(centerSphereB,numTet,k)){ 
                   if(checkTetraIntersection(dataPointsD,idArrayD,normalsB, numTet,k)){
                      intersectionVector[numTet]=true;
+                     printf("DEBUG = %u\n",k);
                      break;
                   }
                } 
@@ -462,7 +486,7 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
          }
       }
 
-      //} //FIXME
+      } //FIXME
 
       /*
       if(intersectionVector[numTet]){
