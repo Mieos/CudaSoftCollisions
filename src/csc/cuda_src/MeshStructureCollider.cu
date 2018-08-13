@@ -93,12 +93,59 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
    printf (" %u \n", idArrayD[4*s1+3]);
  
    */
+   /*
    if(s2==1109){
       printf ("TET 2 || %u , ", idArrayD[4*s2]);
       printf (" %u , ", idArrayD[4*s2+1]);
       printf (" %u , ", idArrayD[4*s2+2]);
       printf (" %u \n", idArrayD[4*s2+3]);   
    }
+   */
+
+   /*
+   printf("DEBUG ID TET1 : %u ",idArrayD[4*s1]);
+   printf(" %u ",idArrayD[4*s1+1]);
+   printf(" %u ",idArrayD[4*s1+2]);
+   printf(" %u\n",idArrayD[4*s1+3]);
+
+   printf("DEBUG ID TET2 : %u ",idArrayD[4*s2]);
+   printf(" %u ",idArrayD[4*s2+1]);
+   printf(" %u ",idArrayD[4*s2+2]);
+   printf(" %u\n",idArrayD[4*s2+3]);
+
+   printf("TET 1 p1 = %f ",dataPointsD[3*idArrayD[4*s1]]);
+   printf(" %f ",dataPointsD[3*idArrayD[4*s1]+1]);
+   printf(" %f\n",dataPointsD[3*idArrayD[4*s1]+2]);
+
+   printf("TET 1 p2 = %f ",dataPointsD[3*idArrayD[4*s1+1]]);
+   printf(" %f ",dataPointsD[3*idArrayD[4*s1+1]+1]);
+   printf(" %f\n",dataPointsD[3*idArrayD[4*s1+1]+2]);
+
+   printf("TET 1 p3 = %f ",dataPointsD[3*idArrayD[4*s1+2]]);
+   printf(" %f ",dataPointsD[3*idArrayD[4*s1+2]+1]);
+   printf(" %f\n",dataPointsD[3*idArrayD[4*s1+2]+2]);
+
+   printf("TET 1 p4 = %f ",dataPointsD[3*idArrayD[4*s1+3]]);
+   printf(" %f ",dataPointsD[3*idArrayD[4*s1+3]+1]);
+   printf(" %f\n",dataPointsD[3*idArrayD[4*s1+3]+2]);
+
+   printf("TET 2 p1 = %f ",dataPointsD[3*idArrayD[4*s2]]);
+   printf(" %f ",dataPointsD[3*idArrayD[4*s2]+1]);
+   printf(" %f\n",dataPointsD[3*idArrayD[4*s2]+2]);
+
+   printf("TET 2 p2 = %f ",dataPointsD[3*idArrayD[4*s2+1]]);
+   printf(" %f ",dataPointsD[3*idArrayD[4*s2+1]+1]);
+   printf(" %f\n",dataPointsD[3*idArrayD[4*s2+1]+2]);
+
+   printf("TET 2 p3 = %f ",dataPointsD[3*idArrayD[4*s2+2]]);
+   printf(" %f ",dataPointsD[3*idArrayD[4*s2+2]+1]);
+   printf(" %f\n",dataPointsD[3*idArrayD[4*s2+2]+2]);
+
+   printf("TET 2 p4 = %f ",dataPointsD[3*idArrayD[4*s2+3]]);
+   printf(" %f ",dataPointsD[3*idArrayD[4*s2+3]+1]);
+   printf(" %f\n",dataPointsD[3*idArrayD[4*s2+3]+2]);
+
+   */
 
    //printf("Test init tetra\n");
    //printf("Tet1 : %u , %u , %u, %u \n",idArrayD[4*s1], idArrayD[4*s1+1], idArrayD[4*s1+2], idArrayD[4*s1+3]);
@@ -138,6 +185,12 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
          }
 
       }
+
+      /*
+      printf("DEBUG nX = %f",normalU[0]);
+      printf(" , nY = %f",normalU[1]);
+      printf(" , nZ = %f\n",normalU[2]);
+      */
 
       if(numNegInter==0){ //All points are at least in the positive side of one face 
          outTestSuccess=true;
@@ -196,7 +249,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
 
    //This test has to be done only after the test concerning the inside test is done
    if(outTestSuccess){
-      //printf("OUSIDE 1 \n");
+      //printf("OUSIDE \n");
       return false;
    }
 
@@ -214,7 +267,6 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
    //TODO test that part 
    //Cross product
 
-   /*
    float p1_v[3];
    float p2_v[3];
    float crossP_v[3];
@@ -237,8 +289,8 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
          size_t idP2_2 = idArrayD[4*s2+edgesID_d[2*n+1]];
 
          p2_v[0]=dataPointsD[3*idP2_2] - dataPointsD[3*idP2_1];
-         p2_v[1]=dataPointsD[3*idP2_2+1] - dataPointsD[3*idP2_1];
-         p2_v[2]=dataPointsD[3*idP2_2+2] - dataPointsD[3*idP2_1];
+         p2_v[1]=dataPointsD[3*idP2_2+1] - dataPointsD[3*idP2_1+1];
+         p2_v[2]=dataPointsD[3*idP2_2+2] - dataPointsD[3*idP2_1+2];
 
          //Cross product
          crossP(p1_v,p2_v,crossP_v);
@@ -254,7 +306,8 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
             pointTested[2]=dataPointsD[3*idP+2];
 
             //Update tests
-            if(checkOrientation(pointTested,crossP_v,pU)){
+            int res_check = checkOrientation(pointTested,crossP_v,pU);
+            if(res_check>0){
                if(results_inter1==-2){
                   results_inter1=1;
                } else if(results_inter1==-1){
@@ -263,7 +316,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
                } else if(results_inter1==1){
                   //OK nothing
                }
-            } else {
+            } else if(res_check<0){
                if(results_inter1==-2){
                   results_inter1=-1;
                } else if(results_inter1==-1){
@@ -291,8 +344,9 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
             pointTested[1]=dataPointsD[3*idP+1];
             pointTested[2]=dataPointsD[3*idP+2];
 
-            //Update tests
-            if(checkOrientation(pointTested,crossP_v,pU)){
+            //Update tests 
+            int res_check = checkOrientation(pointTested,crossP_v,pU);
+            if(res_check>0){
                if(results_inter2==-2){
                   results_inter2=1;
                } else if(results_inter2==-1){
@@ -301,7 +355,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
                } else if(results_inter2==1){
                   //OK nothing
                }
-            } else {
+            } else if(res_check<0){
                if(results_inter2==-2){
                   results_inter2=-1;
                } else if(results_inter2==-1){
@@ -319,6 +373,12 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
             continue;
          }
 
+         if((results_inter1==-2)||(results_inter2==-2)){
+            printf("BUG (important)\n");
+         }
+
+         //printf("At least, there is a check\n");
+
          if(results_inter1*results_inter2<0){
             return false;
          }
@@ -326,9 +386,8 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       }
 
    }
-   */
 
-   printf("WTFn2\n");
+   //printf("WTFn2\n");
 
    return true;
 
@@ -447,8 +506,10 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
 
       intersectionVector[numTet]=false;
 
+      //if(numTet ==0){ //FIXME
       //if(numTet ==1066){ //FIXME
 
+      
       if(numTet>0){ //We have a "small" issue if numTet==0 in the next loop
 
          //First part
@@ -459,7 +520,7 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
                if(checkSphereIntersection(centerSphereB,numTet,k)){
                   if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
                      intersectionVector[numTet]=true;
-                     printf("DEBUG = %u\n",k);
+                     //printf("DEBUG = %u\n",k);
                      break;
                   }
 
@@ -470,21 +531,26 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
          }
 
       }
+       //FIXME
 
       //Second part
       if(!intersectionVector[numTet]){
          for(size_t k=numTet+1; k<numberTets; k++){ 
+
+            //if(k==1109){ //FIXME
 
             if(!checkSameTet(idArrayD,numTet,k)){
 
                if(checkSphereIntersection(centerSphereB,numTet,k)){ 
                   if(checkTetraIntersection(dataPointsD,idArrayD,normalsB, numTet,k)){
                      intersectionVector[numTet]=true;
-                     printf("DEBUG = %u\n",k);
+                     //printf("DEBUG = %u\n",k);
                      break;
                   }
                } 
             }
+
+            //} //END FIXME
          }
       }
 
