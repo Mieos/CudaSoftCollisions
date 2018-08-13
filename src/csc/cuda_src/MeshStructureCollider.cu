@@ -214,6 +214,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
    //TODO test that part 
    //Cross product
 
+   /*
    float p1_v[3];
    float p2_v[3];
    float crossP_v[3];
@@ -325,6 +326,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       }
 
    }
+   */
 
    printf("WTFn2\n");
 
@@ -445,7 +447,7 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
 
       intersectionVector[numTet]=false;
 
-      if(numTet ==1066){ //FIXME
+      //if(numTet ==1066){ //FIXME
 
       if(numTet>0){ //We have a "small" issue if numTet==0 in the next loop
 
@@ -486,7 +488,7 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
          }
       }
 
-      } //FIXME
+      //} //FIXME
 
       /*
       if(intersectionVector[numTet]){
