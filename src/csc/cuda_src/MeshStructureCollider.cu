@@ -2,7 +2,8 @@
 #include <iostream>
 #include <math.h> 
 
-#define EPSILON_d 0.001f
+#define EPSILON_d 0.00001f
+#define EPSILON_d_2 0.00000001f
 
 __constant__ size_t edgesID_d[12];
 
@@ -37,7 +38,6 @@ __device__ int checkOrientation(float* Ptest, float* Nm, float* Pu){
 
 
    float dotP = Nm[0]*vt2[0] + Nm[1]*vt2[1] + Nm[2]*vt2[2];
-
 
    if(abs(dotP)<EPSILON_d){ 
       return 0;
@@ -81,75 +81,72 @@ __device__ bool checkSameTet(size_t* idArrayD, size_t s1, size_t s2){
 
 __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, float* normalBuf, size_t s1, size_t s2){
 
-   //printf("OK 0 !\n");
-
-   //printf("s1 = %u\n", s1);
-   //printf("s2 = %u\n", s2);
-
    /*
-   printf ("TET 1 || %u , ", idArrayD[4*s1]);
-   printf (" %u , ", idArrayD[4*s1+1]);
-   printf (" %u , ", idArrayD[4*s1+2]);
-   printf (" %u \n", idArrayD[4*s1+3]);
- 
-   */
-   /*
-   if(s2==1109){
-      printf ("TET 2 || %u , ", idArrayD[4*s2]);
-      printf (" %u , ", idArrayD[4*s2+1]);
-      printf (" %u , ", idArrayD[4*s2+2]);
-      printf (" %u \n", idArrayD[4*s2+3]);   
-   }
-   */
+      printf("s1 = %u\n", s1);
+      printf("s2 = %u\n", s2);
 
-   /*
-   printf("DEBUG ID TET1 : %u ",idArrayD[4*s1]);
-   printf(" %u ",idArrayD[4*s1+1]);
-   printf(" %u ",idArrayD[4*s1+2]);
-   printf(" %u\n",idArrayD[4*s1+3]);
 
-   printf("DEBUG ID TET2 : %u ",idArrayD[4*s2]);
-   printf(" %u ",idArrayD[4*s2+1]);
-   printf(" %u ",idArrayD[4*s2+2]);
-   printf(" %u\n",idArrayD[4*s2+3]);
+      printf("DEBUG ID TET1 : %u ",idArrayD[4*s1]);
+      printf(" %u ",idArrayD[4*s1+1]);
+      printf(" %u ",idArrayD[4*s1+2]);
+      printf(" %u\n",idArrayD[4*s1+3]);
 
-   printf("TET 1 p1 = %f ",dataPointsD[3*idArrayD[4*s1]]);
-   printf(" %f ",dataPointsD[3*idArrayD[4*s1]+1]);
-   printf(" %f\n",dataPointsD[3*idArrayD[4*s1]+2]);
+      printf("DEBUG ID TET2 : %u ",idArrayD[4*s2]);
+      printf(" %u ",idArrayD[4*s2+1]);
+      printf(" %u ",idArrayD[4*s2+2]);
+      printf(" %u\n",idArrayD[4*s2+3]);
 
-   printf("TET 1 p2 = %f ",dataPointsD[3*idArrayD[4*s1+1]]);
-   printf(" %f ",dataPointsD[3*idArrayD[4*s1+1]+1]);
-   printf(" %f\n",dataPointsD[3*idArrayD[4*s1+1]+2]);
+      printf("TET 1 p1 = %f ",dataPointsD[3*idArrayD[4*s1]]);
+      printf(" %f ",dataPointsD[3*idArrayD[4*s1]+1]);
+      printf(" %f\n",dataPointsD[3*idArrayD[4*s1]+2]);
 
-   printf("TET 1 p3 = %f ",dataPointsD[3*idArrayD[4*s1+2]]);
-   printf(" %f ",dataPointsD[3*idArrayD[4*s1+2]+1]);
-   printf(" %f\n",dataPointsD[3*idArrayD[4*s1+2]+2]);
+      printf("TET 1 p2 = %f ",dataPointsD[3*idArrayD[4*s1+1]]);
+      printf(" %f ",dataPointsD[3*idArrayD[4*s1+1]+1]);
+      printf(" %f\n",dataPointsD[3*idArrayD[4*s1+1]+2]);
 
-   printf("TET 1 p4 = %f ",dataPointsD[3*idArrayD[4*s1+3]]);
-   printf(" %f ",dataPointsD[3*idArrayD[4*s1+3]+1]);
-   printf(" %f\n",dataPointsD[3*idArrayD[4*s1+3]+2]);
+      printf("TET 1 p3 = %f ",dataPointsD[3*idArrayD[4*s1+2]]);
+      printf(" %f ",dataPointsD[3*idArrayD[4*s1+2]+1]);
+      printf(" %f\n",dataPointsD[3*idArrayD[4*s1+2]+2]);
 
-   printf("TET 2 p1 = %f ",dataPointsD[3*idArrayD[4*s2]]);
-   printf(" %f ",dataPointsD[3*idArrayD[4*s2]+1]);
-   printf(" %f\n",dataPointsD[3*idArrayD[4*s2]+2]);
+      printf("TET 1 p4 = %f ",dataPointsD[3*idArrayD[4*s1+3]]);
+      printf(" %f ",dataPointsD[3*idArrayD[4*s1+3]+1]);
+      printf(" %f\n",dataPointsD[3*idArrayD[4*s1+3]+2]);
 
-   printf("TET 2 p2 = %f ",dataPointsD[3*idArrayD[4*s2+1]]);
-   printf(" %f ",dataPointsD[3*idArrayD[4*s2+1]+1]);
-   printf(" %f\n",dataPointsD[3*idArrayD[4*s2+1]+2]);
+      printf("TET 2 p1 = %f ",dataPointsD[3*idArrayD[4*s2]]);
+      printf(" %f ",dataPointsD[3*idArrayD[4*s2]+1]);
+      printf(" %f\n",dataPointsD[3*idArrayD[4*s2]+2]);
 
-   printf("TET 2 p3 = %f ",dataPointsD[3*idArrayD[4*s2+2]]);
-   printf(" %f ",dataPointsD[3*idArrayD[4*s2+2]+1]);
-   printf(" %f\n",dataPointsD[3*idArrayD[4*s2+2]+2]);
+      printf("TET 2 p2 = %f ",dataPointsD[3*idArrayD[4*s2+1]]);
+      printf(" %f ",dataPointsD[3*idArrayD[4*s2+1]+1]);
+      printf(" %f\n",dataPointsD[3*idArrayD[4*s2+1]+2]);
 
-   printf("TET 2 p4 = %f ",dataPointsD[3*idArrayD[4*s2+3]]);
-   printf(" %f ",dataPointsD[3*idArrayD[4*s2+3]+1]);
-   printf(" %f\n",dataPointsD[3*idArrayD[4*s2+3]+2]);
+      printf("TET 2 p3 = %f ",dataPointsD[3*idArrayD[4*s2+2]]);
+      printf(" %f ",dataPointsD[3*idArrayD[4*s2+2]+1]);
+      printf(" %f\n",dataPointsD[3*idArrayD[4*s2+2]+2]);
 
-   */
+      printf("TET 2 p4 = %f ",dataPointsD[3*idArrayD[4*s2+3]]);
+      printf(" %f ",dataPointsD[3*idArrayD[4*s2+3]+1]);
+      printf(" %f\n",dataPointsD[3*idArrayD[4*s2+3]+2]);
+
+    */
+
 
    //printf("Test init tetra\n");
    //printf("Tet1 : %u , %u , %u, %u \n",idArrayD[4*s1], idArrayD[4*s1+1], idArrayD[4*s1+2], idArrayD[4*s1+3]);
    //printf("Tet2 : %u , %u , %u, %u \n",idArrayD[4*s2], idArrayD[4*s2+1], idArrayD[4*s2+2], idArrayD[4*s2+3]);
+
+
+   /*
+      printf("n = %f ",normalBuf[4*6*s1+12]);
+      printf("%f ",normalBuf[4*6*s1+12+1]);
+      printf("%f\n",normalBuf[4*6*s1+12+2]);
+
+      printf("p = %f ",normalBuf[4*6*s1+12+3]);
+      printf("%f ",normalBuf[4*6*s1+12+4]);
+      printf("%f\n",normalBuf[4*6*s1+12+5]);
+    */
+
+   //size_t debugNUMNEG = 0;
 
    //Real test
    float normalU[3];
@@ -160,7 +157,8 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
 
    //Test all points of tet2 with faces of tet1
    size_t numPos=0;
-   for(size_t k=0; k<4;k++){
+   for(size_t k=0; k<4; k++){
+
       normalU[0] = normalBuf[4*6*s1+k*6];
       normalU[1] = normalBuf[4*6*s1+k*6+1];
       normalU[2] = normalBuf[4*6*s1+k*6+2];
@@ -186,20 +184,16 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
 
       }
 
-      /*
-      printf("DEBUG nX = %f",normalU[0]);
-      printf(" , nY = %f",normalU[1]);
-      printf(" , nZ = %f\n",normalU[2]);
-      */
-
       if(numNegInter==0){ //All points are at least in the positive side of one face 
+         //printf("OUSIDE s1 %u\n",k);
          outTestSuccess=true;
       }
 
+
    }
 
+
    if(numPos == 0){ //The tet is inside the other
-      //printf("INSIDE 0 \n");
       return true;      
    }
 
@@ -214,8 +208,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       pU[2] = normalBuf[4*6*s2+k*6+5];
 
       size_t numNegInter = 0;
-     
-      //printf("Face = %u\n", k);
+
       for(size_t i=0; i<4; i++){
 
          size_t idP = idArrayD[4*s1+i];
@@ -225,48 +218,38 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
 
          int res_test = checkOrientation(pointTested,normalU,pU);
          if(res_test<0){
-            //printf("Num point Neg = %u\n", i);
             numNegInter++;   
          } else if (res_test>0){
-            //printf("Num point Pos = %u\n", i);
             numPos++;
          }
 
       }
 
       if(numNegInter==0){ //All points are at least in the positive side of one face 
-         //printf("numPos = %u\n",numPos);
-         //printf("face = %u\n",k);
          outTestSuccess=true;
       }
 
    }
 
    if(numPos == 0){ //The tet is inside the other
-      //printf("INSIDE\n");
       return true;      
    }
 
    //This test has to be done only after the test concerning the inside test is done
    if(outTestSuccess){
-      //printf("OUSIDE \n");
       return false;
    }
 
-   //printf("WTF! %u\n",s2);
-
    size_t edgesID_d[] = {
-         0,1,
-         1,2,
-         2,0,
-         0,3,
-         1,3,
-         2,3
+      0,1,
+      1,2,
+      2,0,
+      0,3,
+      1,3,
+      2,3
    };
 
-   //TODO test that part 
-   //Cross product
-
+   //Cross product between edges
    float p1_v[3];
    float p2_v[3];
    float crossP_v[3];
@@ -274,7 +257,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
 
       size_t idP1_1 = idArrayD[4*s1+edgesID_d[2*m]];
       size_t idP1_2 = idArrayD[4*s1+edgesID_d[2*m+1]];
-      
+
       p1_v[0]=dataPointsD[3*idP1_2] - dataPointsD[3*idP1_1];
       p1_v[1]=dataPointsD[3*idP1_2+1] - dataPointsD[3*idP1_1+1];
       p1_v[2]=dataPointsD[3*idP1_2+2] - dataPointsD[3*idP1_1+2];
@@ -294,6 +277,18 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
 
          //Cross product
          crossP(p1_v,p2_v,crossP_v);
+
+         float normCross = crossP_v[0]*crossP_v[0] + crossP_v[1]*crossP_v[1] + crossP_v[2]*crossP_v[2];
+
+         if(normCross<EPSILON_d_2){
+            //Skip
+            continue;
+         } else {
+            //Normalize
+            crossP_v[0] = crossP_v[0]/normCross;
+            crossP_v[1] = crossP_v[1]/normCross;
+            crossP_v[2] = crossP_v[2]/normCross;
+         }
 
          //Test 1
          int results_inter1 = -2;
@@ -373,12 +368,9 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
             continue;
          }
 
-         if((results_inter1==-2)||(results_inter2==-2)){
-            //printf("BUG (important)\n");//FIXME All the points are ON the plane WTF
-            continue;
+         if((results_inter1==-2)&&(results_inter2==-2)){ //All points are on the plane
+            printf("BUG (important), please check the kernel : %f \n", normCross);
          }
-
-         //printf("At least, there is a check\n");
 
          if(results_inter1*results_inter2<0){
             return false;
@@ -387,8 +379,6 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
       }
 
    }
-
-   //printf("WTFn2\n");
 
    return true;
 
@@ -441,16 +431,8 @@ __global__ void updatePlanesTet(float*  dataPointsD, size_t* idArrayD, float* no
          2,1,3
       };
 
-      //printf("numTet = %u\n",numTet);
 
       for(size_t k=0; k<4; k++){
-      //for(size_t k=3; k<4; k++){
-      
-         /*
-         printf("ID1 = %u\n",idTetConsidered[idOrientedTetFaces[3*k]]);
-         printf("ID2 = %u\n",idTetConsidered[idOrientedTetFaces[3*k+1]]);
-         printf("ID3 = %u\n",idTetConsidered[idOrientedTetFaces[3*k+2]]);
-         */
 
          size_t id1,id2,id3;
          id1=idTetConsidered[idOrientedTetFaces[3*k]];
@@ -507,10 +489,6 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
 
       intersectionVector[numTet]=false;
 
-      //if(numTet ==0){ //FIXME
-      //if(numTet ==1066){ //FIXME
-
-      
       if(numTet>0){ //We have a "small" issue if numTet==0 in the next loop
 
          //First part
@@ -528,43 +506,26 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
                }
 
             }
-
          }
 
       }
-       //FIXME
 
       //Second part
       if(!intersectionVector[numTet]){
          for(size_t k=numTet+1; k<numberTets; k++){ 
 
-            //if(k==1109){ //FIXME
 
             if(!checkSameTet(idArrayD,numTet,k)){
-
                if(checkSphereIntersection(centerSphereB,numTet,k)){ 
                   if(checkTetraIntersection(dataPointsD,idArrayD,normalsB, numTet,k)){
                      intersectionVector[numTet]=true;
-                     //printf("DEBUG = %u\n",k);
                      break;
                   }
                } 
             }
 
-            //} //END FIXME
          }
       }
-
-      //} //FIXME
-
-      /*
-      if(intersectionVector[numTet]){
-         printf("Intersecting : %u\n", numTet);
-      } else {
-         printf("NOT intersecting : %u\n", numTet);
-      }
-      */
-      
 
    }
 
@@ -607,8 +568,6 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
    std::vector<float> array;
 
    if(dataMesh.type()==CV_32FC1){
-
-      //std::cout << "Type detected : CV_32FC1 : OK" << std::endl;
 
       this->numPoints=dataMesh.rows;
 
@@ -654,13 +613,6 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
             tetVectorPointer[4*k+3] = tetIdVector.at(k).at(3);
 
          }
-
-         //DEBUG
-         /*
-            for(size_t k=0; k<this->numTets; k++){ 
-            std::cout << "NUM = " << k << " || Id = " << tetVectorPointer[4*k] << " , " << tetVectorPointer[4*k+1] << " , " << tetVectorPointer[4*k+2] << " , " << tetVectorPointer[4*k+3] << std::endl;
-            }
-          */
 
          size_t size_tetVector = 4*this->numTets*sizeof(size_t);
          error=cudaMalloc((void **) &(this->tetId_d), size_tetVector);
@@ -825,10 +777,6 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
       fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
 
    }
-
-
-   //debugTestKernel<<<dimGrid, dimBlock>>>(this->tetId_d, this->numTets);
-   //cudaDeviceSynchronize();
 
    //Get results
    size_t sizeResult = this->numTets * sizeof(bool);

@@ -17,7 +17,7 @@ int main(int argc, char *argv[]){
    std::string path = MIEOS_HELPERS_DATAPATH_GENERATED;
 
    //Not intersecting
-   path = path + "/meshes/trickyTets.ply";
+   path = path + "/meshes/trickyTets2.ply";
 
    vtkSmartPointer<vtkPLYReader> reader = vtkSmartPointer<vtkPLYReader>::New(); 
    reader->SetFileName ( path.c_str() );
@@ -95,6 +95,10 @@ int main(int argc, char *argv[]){
    std::vector<size_t> associationResults;
    for(size_t k=0; k<numPoints ; k++){
       associationResults.push_back(k);
+   }
+
+   for(size_t k=0; k<cvPoints.rows; k++){
+      //std::cout << "PX = " << cvPoints.at<float>(k,0) << " , PY = " << cvPoints.at<float>(k,1) << " , PZ = " << cvPoints.at<float>(k,2) << std::endl;
    }
 
    //Create the object

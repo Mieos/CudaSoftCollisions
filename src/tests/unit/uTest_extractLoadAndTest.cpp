@@ -26,12 +26,12 @@ int main(int argc, char *argv[]){
    std::string path = MIEOS_HELPERS_DATAPATH_GENERATED;
 
    //SavePath
-   std::string savePath = MIEOS_HELPERS_DATAPATH_GENERATED;
-   savePath = savePath + "/meshes/bug.ply";
+   //std::string savePath = MIEOS_HELPERS_DATAPATH_GENERATED;
+   //savePath = savePath + "/meshes/trickyTets.ply";
 
    //Icosaheron
-   //path = path + "/meshes/torus_vol_highres.vtk";
-   path = path + "/meshes/sphere_volume.vtk";
+   path = path + "/meshes/torus_vol_highres.vtk";
+   //path = path + "/meshes/sphere_volume.vtk";
    std::cout << "Reading: " << path << std::endl;
 
    //Test model extraction
@@ -85,44 +85,39 @@ int main(int argc, char *argv[]){
    auto endCollide = std::chrono::steady_clock::now();
    auto diffCollide = endCollide - startCollide;
    std::cout << std::chrono::duration <double, std::milli> (diffCollide).count() << " ms" << std::endl;
+   
    //Check results
-   /*
-   if(collideVector.at(1066)){
-      std::cout << "BUG" << std::endl;
-   } else { 
-      std::cout << "OK" << std::endl;
-   }
-   */
-
+   bool bugDetected=false;
    for(size_t k=0; k<collideVector.size();k++){
       if(collideVector.at(k)){
-         std::cout << "Collide : " << k << std::endl;
-      } else {
-         //std::cout << "NOPE : " << k << std::endl;
+         bugDetected=true;;
       }
+   }
+
+   if(bugDetected){
+      std::cout << "BUG detected : intersection detected while it should not" << std::endl;
+   } else {
+      std::cout << "No intersection detected : OK" << std::endl;
    }
 
    /*
    //DEBUG
    cv::Mat debugPoints = cv::Mat::zeros(8,3,CV_32FC1);
 
-
-   size_t idTet1 = tetSelected.at(1066);
-   size_t idTet2 = tetSelected.at(1109);
+   size_t idTet1 = tetSelected.at(454);
+   size_t idTet1_i = 454;
+   size_t idTet2 = tetSelected.at(7505);
+   size_t idTet2_i = 7505;
 
    vtkIdType debug_npts;
    vtkIdType* debug_pts1;
    vtkIdType* debug_pts2;
    mesh3d->GetCellPoints(idTet1, debug_npts, debug_pts1);
 
-   std::cout << "DEBUG tet 1 = " << debug_pts1[0] << "," << debug_pts1[1] << "," << debug_pts1[2] << "," << debug_pts1[3] << std::endl;
-   mesh3d->GetCellPoints(idTet2, debug_npts, debug_pts2);
-   std::cout << "DEBUG tet 2 = " << debug_pts2[0] << "," << debug_pts2[1] << "," << debug_pts2[2] << "," << debug_pts2[3] << std::endl;
-   
    std::cout << "TET1 = ";
    float px, py, pz;
    for(size_t k =0; k<4; k++){
-      size_t idP = tetIdVector.at(1066).at(k);
+      size_t idP = tetIdVector.at(idTet1_i).at(k);
       px = pointsMat.at<float>(associationResults.at(idP),0);
       py = pointsMat.at<float>(associationResults.at(idP),1);
       pz = pointsMat.at<float>(associationResults.at(idP),2);
@@ -130,7 +125,7 @@ int main(int argc, char *argv[]){
       debugPoints.at<float>(k,0) = px;
       debugPoints.at<float>(k,1) = py;
       debugPoints.at<float>(k,2) = pz;
-      std:: cout << associationResults.at(idP) << " , "; //"(" << idFind << ")"<< " , ";
+      std:: cout << associationResults.at(idP) << "(" << idP << ")"<< " , ";
 
    }
    std::cout << std::endl;
@@ -138,7 +133,7 @@ int main(int argc, char *argv[]){
 
    std::cout << "TET2 = ";
    for(size_t k =0; k<4; k++){
-      size_t idP = tetIdVector.at(1109).at(k);
+      size_t idP = tetIdVector.at(idTet2_i).at(k);
       px = pointsMat.at<float>(associationResults.at(idP),0);
       py = pointsMat.at<float>(associationResults.at(idP),1);
       pz = pointsMat.at<float>(associationResults.at(idP),2);
@@ -231,6 +226,7 @@ int main(int argc, char *argv[]){
    plyWriter->SetInputData(polyData);
 #endif
    plyWriter->Write();
+
    */
 
    delete msc;
