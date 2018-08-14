@@ -13,8 +13,8 @@ int main(int argc, char *argv[]){
    std::string path = MIEOS_HELPERS_DATAPATH_GENERATED;
    
    //Icosaheron
-   //path = path + "/meshes/torus_vol.vtk";
-   path = path + "/meshes/triangularDipyramid_volume.vtk";
+   path = path + "/meshes/torus_vol.vtk";
+   //path = path + "/meshes/triangularDipyramid_volume.vtk";
    
    std::cout << "Reading: " << path << std::endl;
 
