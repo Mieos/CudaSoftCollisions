@@ -71,6 +71,7 @@ int main(int argc, char *argv[]){
    std::map<std::tuple<size_t,size_t,size_t>,std::vector<size_t>> mapFaces;
    vtkIdType npts;
    vtkIdType *pts;
+   //FIXME WTF
    size_t idTetFaces[] = {
       0,1,2,3,
       0,1,3,2,
