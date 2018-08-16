@@ -14,7 +14,6 @@
 #include <vtkTriangle.h>
 #include <vtkCellArray.h>
 
-#include <vtkPLYWriter.h>
 #include <vtkGenericDataObjectWriter.h>
 
 #include <vtkPointData.h>
