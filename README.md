@@ -28,8 +28,8 @@ This library is doing fast model collision detection using two main tricks:
 ## How to test the library
 This library provides different test in bin/tests/unit to check if the collision is working properly
 * uTest_extractSurfaceVolume : extract the surface of a polyhedra and save it as data/meshes/test.ply (in the exemple it is a torus)
-![Torus model](https://github.com/Mieos/CudaSoftCollisions/data/img/tor_model.png)
 * uTest_extractModelFromFile : extract all the tetrahedron of a polyhedra that have a face on the surface and save it as data/meshes/test3Dmodel.ply
+<img src="https://raw.githubusercontent.com/Mieos/CudaSoftCollisions/master/data/img/tor_model.png" width="300">
 * uTest_simpleCollision : simple collision test
 * uTest_collisionTwoTet : collision between two tetrahedra (with and without collision)
 * uTest_trickyCollision : tricky configuration without collision 
