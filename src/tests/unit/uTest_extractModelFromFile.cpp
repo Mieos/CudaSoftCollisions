@@ -24,8 +24,7 @@ int main(int argc, char *argv[]){
    savePath = savePath + "/meshes/test3Dmodel.ply";
 
    //Icosaheron
-   path = path + "/meshes/sphere_volume.vtk";
-   //path = path + "/meshes/triangularDipyramid_volume.vtk";
+   path = path + "/meshes/torus_vol_highres.vtk";
    std::cout << "Reading: " << path << std::endl;
 
    //Test model extraction
@@ -71,7 +70,7 @@ int main(int argc, char *argv[]){
    std::map<std::tuple<size_t,size_t,size_t>,std::vector<size_t>> mapFaces;
    vtkIdType npts;
    vtkIdType *pts;
-   //FIXME WTF
+   
    size_t idTetFaces[] = {
       0,1,2,3,
       0,1,3,2,
