@@ -198,7 +198,6 @@ int main(int argc, char *argv[]){
          triangleU->GetPointIds()->SetId( 1, i1 );
          triangleU->GetPointIds()->SetId( 2, i2 );
          if(isColliding){
-            //std::cout << i0 << " , " << i1 << " , " << i2 << std::endl;
             collidingPoints.at(i0)=true;
             collidingPoints.at(i1)=true;
             collidingPoints.at(i2)=true;

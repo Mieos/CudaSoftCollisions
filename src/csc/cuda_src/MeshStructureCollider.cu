@@ -500,7 +500,7 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
                   if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
                      intersectionVector[numTet]=true;
                      //printf("DEBUG = %u\n",k);
-                     break;
+                     //break;
                   }
 
                }
@@ -519,7 +519,7 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
                if(checkSphereIntersection(centerSphereB,numTet,k)){ 
                   if(checkTetraIntersection(dataPointsD,idArrayD,normalsB, numTet,k)){
                      intersectionVector[numTet]=true;
-                     break;
+                     //break;
                   }
                } 
             }
@@ -738,10 +738,6 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
    size_t sizeBlockToUse = sqrt (prop.maxThreadsDim[0]);
    size_t sizeGridx = ceil(float(this->numTets)/float(sizeBlockToUse*sizeBlockToUse));
    size_t sizeGridy = 1;
-
-   //std::cout << "Tets = " << this->numTets << std::endl;
-   //std::cout << "Block size = " << sizeBlockToUse << std::endl;
-   //std::cout << "Grid size = " << sizeGridx << std::endl;
 
    dim3 dimGrid(sizeGridx,sizeGridy);
    dim3 dimBlock(sizeBlockToUse, sizeBlockToUse);
