@@ -176,7 +176,6 @@ int main(int argc, char *argv[]){
       points->InsertNextPoint(x_u,y_u,z_u);
       collidingPoints.push_back(false);
    }
-   std::cout << "NUM points = " << associationResults.size() << std::endl;
 
    size_t idTetFaces[] = {
          0,1,2,

@@ -693,7 +693,7 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
    size_t sizeBlockToUse = sqrt (prop.maxThreadsDim[0]);
    
    //Reduce the number of thread in one direction in order to avoid ressources exhaustment
-   size_t dimXReducedBlock = sizeBlockToUse / 2; 
+   size_t dimXReducedBlock = size_t(0.75 * float(sizeBlockToUse)); 
    
    //Compute size of the grid needed
    size_t sizeGridx = ceil(float(this->numTets)/float(dimXReducedBlock*sizeBlockToUse));
