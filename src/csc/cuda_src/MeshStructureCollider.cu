@@ -130,24 +130,6 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
 
     */
 
-
-   //printf("Test init tetra\n");
-   //printf("Tet1 : %u , %u , %u, %u \n",idArrayD[4*s1], idArrayD[4*s1+1], idArrayD[4*s1+2], idArrayD[4*s1+3]);
-   //printf("Tet2 : %u , %u , %u, %u \n",idArrayD[4*s2], idArrayD[4*s2+1], idArrayD[4*s2+2], idArrayD[4*s2+3]);
-
-
-   /*
-      printf("n = %f ",normalBuf[4*6*s1+12]);
-      printf("%f ",normalBuf[4*6*s1+12+1]);
-      printf("%f\n",normalBuf[4*6*s1+12+2]);
-
-      printf("p = %f ",normalBuf[4*6*s1+12+3]);
-      printf("%f ",normalBuf[4*6*s1+12+4]);
-      printf("%f\n",normalBuf[4*6*s1+12+5]);
-    */
-
-   //size_t debugNUMNEG = 0;
-
    //Real test
    float normalU[3];
    float pU[3];
@@ -368,9 +350,12 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
             continue;
          }
 
+         //We do not want printf in the kernel
+         /*
          if((results_inter1==-2)&&(results_inter2==-2)){ //All points are on the plane
             printf("BUG (important), please check the kernel : %f \n", normCross);
          }
+         */
 
          if(results_inter1*results_inter2<0){
             return false;
@@ -484,7 +469,6 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
 
    size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
 
-
    if(numTet<numberTets){
 
       intersectionVector[numTet]=false;
@@ -499,7 +483,6 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
                if(checkSphereIntersection(centerSphereB,numTet,k)){
                   if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
                      intersectionVector[numTet]=true;
-                     //printf("DEBUG = %u\n",k);
                      //break;
                   }
 
@@ -526,35 +509,6 @@ __global__ void checkForIntersection(float*  dataPointsD, size_t* idArrayD, floa
 
          }
       }
-
-   }
-
-}
-
-__global__ void debugTestKernel(size_t* tetIndex, size_t numberTets){
-
-   size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
-
-   if(numTet<numberTets){
-
-      size_t i1, i2, i3, i4;
-      i1 = tetIndex[4*numTet];
-      i2 = tetIndex[4*numTet+1];
-      i3 = tetIndex[4*numTet+2];
-      i4 = tetIndex[4*numTet+3];
-      //printf("Numtet = %u || %u , %u , %u , %u \n", numTet, i1, i2, i3, i4);
-      printf(" i1 = %u\n", i1);
-      printf(" i2 = %u\n", i2);
-      printf(" i3 = %u\n", i3);
-      printf(" i4 = %u\n", i4);
-
-      /*
-         boolV[numTet]=false;
-
-         if(boolV[numTet]){
-         printf("DEBUG\n");
-         }
-       */
 
    }
 
@@ -733,14 +687,20 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
 
    cudaError_t error;
 
+   //Get the max of threads usable
    cudaDeviceProp prop;
    cudaGetDeviceProperties(&prop,0);
    size_t sizeBlockToUse = sqrt (prop.maxThreadsDim[0]);
-   size_t sizeGridx = ceil(float(this->numTets)/float(sizeBlockToUse*sizeBlockToUse));
+   
+   //Reduce the number of thread in one direction in order to avoid ressources exhaustment
+   size_t dimXReducedBlock = sizeBlockToUse / 2; 
+   
+   //Compute size of the grid needed
+   size_t sizeGridx = ceil(float(this->numTets)/float(dimXReducedBlock*sizeBlockToUse));
    size_t sizeGridy = 1;
 
    dim3 dimGrid(sizeGridx,sizeGridy);
-   dim3 dimBlock(sizeBlockToUse, sizeBlockToUse);
+   dim3 dimBlock(dimXReducedBlock, sizeBlockToUse);
 
    //Update sphere
    updateCenterSphere<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->numTets);
@@ -764,14 +724,15 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
 
    //Check collision
    checkForIntersection<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
-   if ( cudaSuccess != cudaGetLastError() ){ 
+   error=cudaGetLastError();
+   if ( cudaSuccess != error ){ 
       fprintf(stderr, "Error collision\n");
+      fprintf(stderr, "Kernel: %s\n", cudaGetErrorString(error));
    }
    error = cudaDeviceSynchronize();
    if ( cudaSuccess != error ){ 
       fprintf(stderr, "Error collision(synchro)\n");
       fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
-
    }
 
    //Get results
