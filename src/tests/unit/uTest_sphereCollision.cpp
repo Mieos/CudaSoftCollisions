@@ -13,7 +13,9 @@
 #include <map>
 #include <vtkTriangle.h>
 #include <vtkCellArray.h>
+
 #include <vtkPLYWriter.h>
+#include <vtkGenericDataObjectWriter.h>
 
 #include <vtkPointData.h>
 
@@ -29,7 +31,7 @@ int main(int argc, char *argv[]){
 
    //SavePath
    std::string savePath = MIEOS_HELPERS_DATAPATH_GENERATED;
-   savePath = savePath + "/meshes/intersectingSphere.ply";
+   savePath = savePath + "/meshes/intersectingSphere.vtk";
 
    //Icosaheron
    path = path + "/meshes/sphere_volume.vtk";
@@ -73,7 +75,7 @@ int main(int argc, char *argv[]){
    centerS[1]=centerS[1]/numberOfPoints;
    centerS[2]=centerS[2]/numberOfPoints;
 
-   float collisionNorm=0.5;
+   float collisionNorm=2.0;
    cv::Mat pointsMatUpdateCollision = cv::Mat::zeros(numberOfPoints,3,CV_32FC1);
    float vT[3];
    float dotTest;
@@ -87,9 +89,9 @@ int main(int argc, char *argv[]){
          pointsMatUpdateCollision.at<float>(k,1)=pointsMat.at<float>(k,1);
          pointsMatUpdateCollision.at<float>(k,2)=pointsMat.at<float>(k,2);
       } else {
-         pointsMatUpdateCollision.at<float>(k,0)=pointsMat.at<float>(k,0)+collisionNorm*upVector[0];
-         pointsMatUpdateCollision.at<float>(k,1)=pointsMat.at<float>(k,1)+collisionNorm*upVector[1];
-         pointsMatUpdateCollision.at<float>(k,2)=pointsMat.at<float>(k,2)+collisionNorm*upVector[2];
+         pointsMatUpdateCollision.at<float>(k,0)=pointsMat.at<float>(k,0)-collisionNorm*upVector[0];
+         pointsMatUpdateCollision.at<float>(k,1)=pointsMat.at<float>(k,1)-collisionNorm*upVector[1];
+         pointsMatUpdateCollision.at<float>(k,2)=pointsMat.at<float>(k,2)-collisionNorm*upVector[2];
       }
    }
    //Create the object
@@ -205,18 +207,28 @@ int main(int argc, char *argv[]){
          //
       }
    }
-  
+
    vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
    colors->SetNumberOfComponents(3);
-   colors->SetName("Colors");
+   colors->SetName ("Colors");
+
    unsigned char red[3] = {255, 0, 0};
    unsigned char green[3] = {0, 255, 0};
 
    for(size_t k=0; k<collidingPoints.size(); k++){
       if(collidingPoints.at(k)){
+#if VTK_MAJOR_VERSION < 7      
          colors->InsertNextTupleValue(red);
+#else
+         colors->InsertNextTypedTuple(red);
+#endif
       } else {
+
+#if VTK_MAJOR_VERSION < 7      
          colors->InsertNextTupleValue(green);
+#else
+         colors->InsertNextTypedTuple(green);
+#endif
       }
    }
 
@@ -225,21 +237,20 @@ int main(int argc, char *argv[]){
    polydata->SetPolys(triangles);
    polydata->GetPointData()->SetScalars(colors);
 
-   vtkSmartPointer<vtkPLYWriter> plyWriter = vtkSmartPointer<vtkPLYWriter>::New();
-   plyWriter->SetFileName(savePath.c_str());
-   plyWriter->SetFileTypeToASCII();
+   vtkSmartPointer<vtkGenericDataObjectWriter> vtkWriter = vtkSmartPointer<vtkGenericDataObjectWriter>::New();
+   vtkWriter->SetFileName(savePath.c_str());
+   vtkWriter->SetFileTypeToASCII();
 
 #if VTK_MAJOR_VERSION <= 5
-   plyWriter->SetInput(polydata);
+   vtkWriter->SetInput(polydata);
 #else
-   plyWriter->SetInputData(polydata);
+   vtkWriter->SetInputData(polydata);
 #endif
-   plyWriter->Write();
+   vtkWriter->Write();
 
    delete msc;
 
    std::cout << "Test : Ending.. " << std::endl << std::endl;
-
 
 
    return 0;
