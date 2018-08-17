@@ -92,6 +92,15 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
             fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
          }
 
+         //Subdivision buffers
+         this->numberSub=100;
+         size_t size_subdividedCollisionVector = this->numberSub*this->numTets*sizeof(bool);
+         error=cudaMalloc((void **) &(this->subdividedCollisionVector_d), size_subdividedCollisionVector);
+         if (error != cudaSuccess) {
+            fprintf(stderr, "Issue while creating subdivision vector\n");
+            fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+         }
+
          //Create collision vector (CPU and GPU)
          this->collideVectorArray = new bool[this->numTets];
          size_t size_collideVectorArray = this->numTets*sizeof(bool); 
@@ -127,6 +136,7 @@ MeshStructureCollider::~MeshStructureCollider(){
    cudaFree(this->tetId_d);
    cudaFree(this->sphereBuf_d);
    cudaFree(this->normalBuf_d);
+   cudaFree(this->subdividedCollisionVector_d);
 
 }
 
@@ -172,14 +182,8 @@ bool MeshStructureCollider::updatePointsPositions(const cv::Mat & newPositions){
    size_t size_data = 3*this->numPoints*sizeof(float);
    cudaMemcpy(this->data_d, this->dataArrayBuff, size_data, cudaMemcpyHostToDevice);
 
-   return true;
-
-}
-
-//Colliding function
-bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
-
-   cudaError_t error;
+   //Update the others buffers
+   //cudaError_t error;
 
    //Get the max of threads usable
    cudaDeviceProp prop;
@@ -216,8 +220,35 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
       fprintf(stderr, "Error updating face buffers(synchro)\n");
    }
 
+
+   return true;
+
+}
+
+//Colliding function
+bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
+
+   cudaError_t error;
+
+   //Get the max of threads usable
+   cudaDeviceProp prop;
+   cudaGetDeviceProperties(&prop,0);
+   size_t sizeBlockToUse = sqrt (prop.maxThreadsDim[0]);
+   
+   //Reduce the number of thread in one direction in order to avoid ressources exhaustment
+   size_t dimXReducedBlock = size_t(0.75 * float(sizeBlockToUse)); 
+   
+   //Compute size of the grid needed
+   size_t sizeGridx = ceil(float(this->numTets)/float(dimXReducedBlock*sizeBlockToUse));
+   size_t sizeGridy = this->numberSub;
+   //size_t sizeGridy = 1;
+
+   dim3 dimGrid(sizeGridx,sizeGridy);
+   dim3 dimBlock(dimXReducedBlock, sizeBlockToUse);
+
    //Check collision
-   checkForIntersection<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
+   //checkForIntersectionV0<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
+   checkForIntersectionV1<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->subdividedCollisionVector_d); 
    error=cudaGetLastError();
    if ( cudaSuccess != error ){ 
       fprintf(stderr, "Error collision\n");
@@ -229,10 +260,23 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
       fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
    }
 
+   //Reduction
+   dim3 dimGridReduction(sizeGridx,1);
+   reduceIntersectionVector<<<dimGridReduction, dimBlock>>>(this->numTets, this->numberSub, this->subdividedCollisionVector_d, this->collideVectorArray_d);
+   error=cudaGetLastError();
+   if ( cudaSuccess != error ){ 
+      fprintf(stderr, "Error reduction\n");
+      fprintf(stderr, "Kernel: %s\n", cudaGetErrorString(error));
+   } 
+   error = cudaDeviceSynchronize();
+   if ( cudaSuccess != error ){ 
+      fprintf(stderr, "Error reduction(synchro)\n");
+      fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
+   }
+
    //Get results
    size_t sizeResult = this->numTets * sizeof(bool);
-
-   error = cudaMemcpy(collideVectorArray, this->collideVectorArray_d, sizeResult, cudaMemcpyDeviceToHost);
+   error = cudaMemcpy(this->collideVectorArray, this->collideVectorArray_d, sizeResult, cudaMemcpyDeviceToHost);
    if (error != cudaSuccess) {
       fprintf(stderr, "Issue while saving the collision vector\n");
       fprintf(stderr, "cudaMemcpy failed: %s\n", cudaGetErrorString(error));
