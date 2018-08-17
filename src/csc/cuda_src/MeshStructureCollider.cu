@@ -93,7 +93,7 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
          }
 
          //Subdivision buffers
-         this->numberSub=100;
+         this->numberSub=50;
          size_t size_subdividedCollisionVector = this->numberSub*this->numTets*sizeof(bool);
          error=cudaMalloc((void **) &(this->subdividedCollisionVector_d), size_subdividedCollisionVector);
          if (error != cudaSuccess) {
@@ -240,15 +240,15 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
    
    //Compute size of the grid needed
    size_t sizeGridx = ceil(float(this->numTets)/float(dimXReducedBlock*sizeBlockToUse));
-   size_t sizeGridy = this->numberSub;
-   //size_t sizeGridy = 1;
+   //size_t sizeGridy = this->numberSub;
+   size_t sizeGridy = 1;
 
    dim3 dimGrid(sizeGridx,sizeGridy);
    dim3 dimBlock(dimXReducedBlock, sizeBlockToUse);
 
    //Check collision
-   //checkForIntersectionV0<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
-   checkForIntersectionV1<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->subdividedCollisionVector_d); 
+   checkForIntersectionV0<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
+   //checkForIntersectionV1<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->subdividedCollisionVector_d); 
    error=cudaGetLastError();
    if ( cudaSuccess != error ){ 
       fprintf(stderr, "Error collision\n");
@@ -260,6 +260,7 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
       fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
    }
 
+   /*
    //Reduction
    dim3 dimGridReduction(sizeGridx,1);
    reduceIntersectionVector<<<dimGridReduction, dimBlock>>>(this->numTets, this->numberSub, this->subdividedCollisionVector_d, this->collideVectorArray_d);
@@ -273,6 +274,7 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
       fprintf(stderr, "Error reduction(synchro)\n");
       fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
    }
+   */
 
    //Get results
    size_t sizeResult = this->numTets * sizeof(bool);
