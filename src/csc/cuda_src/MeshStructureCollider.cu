@@ -242,6 +242,6 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
       collisionList.at(k)=collideVectorArray[k];
    }
 
-   return false; 
+   return true; 
 
 }

@@ -1,3 +1,0 @@
-Nothing here, this is the first line of an example file
-And this is a second one
-And a third one.. 
