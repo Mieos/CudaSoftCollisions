@@ -40,12 +40,13 @@ __global__ void checkForIntersectionV1(float*  dataPointsD, size_t* idArrayD, fl
    size_t subD = gridDim.y;
    size_t numS = blockIdx.y;
 
+   size_t size_loop = size_t(float(numberTets)/float(subD));
 
    if(numTet<numberTets){
 
       subIntersectionVector[subD*numTet+numS]=false;
 
-      for(size_t k=numS*subD; k<(numS+1)*subD; k++){
+      for(size_t k=numS*size_loop; k<(numS+1)*size_loop; k++){
 
          if(k<numberTets){
 
@@ -60,6 +61,7 @@ __global__ void checkForIntersectionV1(float*  dataPointsD, size_t* idArrayD, fl
                }
 
             }
+
          }
 
       }
