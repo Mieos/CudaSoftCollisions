@@ -19,6 +19,7 @@ __global__ void checkForIntersectionV0(float*  dataPointsD, size_t* idArrayD, fl
 
             if(checkSphereIntersection(centerSphereB,numTet,k)){
 
+               //intersectionVector[numTet]=true;
                if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
                   intersectionVector[numTet]=true;
                }
@@ -34,13 +35,13 @@ __global__ void checkForIntersectionV0(float*  dataPointsD, size_t* idArrayD, fl
 }
 
 //Check the intersection between one tetrahedron and a part of all the others (kernels)
-__global__ void checkForIntersectionV1(float*  dataPointsD, size_t* idArrayD, float* centerSphereB, float* normalsB, size_t numberTets, bool* subIntersectionVector){
+__global__ void checkForIntersectionV1(float*  dataPointsD, size_t* idArrayD, float* centerSphereB, float* normalsB, size_t numberTets, size_t size_loop, bool* subIntersectionVector){
 
    size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
    size_t subD = gridDim.y;
    size_t numS = blockIdx.y;
 
-   size_t size_loop = size_t(float(numberTets)/float(subD));
+   //size_t size_loop = size_t(float(numberTets)/float(subD));
 
    if(numTet<numberTets){
 
@@ -54,6 +55,8 @@ __global__ void checkForIntersectionV1(float*  dataPointsD, size_t* idArrayD, fl
 
                if(checkSphereIntersection(centerSphereB,numTet,k)){
 
+                  //subIntersectionVector[subD*numTet+numS]=true;
+                  
                   if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
                      subIntersectionVector[subD*numTet+numS]=true;
                   }
