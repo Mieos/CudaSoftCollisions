@@ -49,83 +49,57 @@ __global__ void checkForIntersectionV1(float*  dataPointsD, size_t* idArrayD, fl
 
       subIntersectionVector[subD*numTet+numS]=false;
 
-      if(numS==subD-1){
-
-         for(size_t k=numS*size_loop; k<numberTets; k++){
-
-            if(!checkSameTet(idArrayD,&numTet,&k)){
-
-               /*
-                  
-                  if(!foundInter){
-                     subIntersectionVector[subD*numTet+numS]=true;
-                     foundInter=true;
-                  }
-                 
-               */
-                  
-               if(checkSphereIntersection(centerSphereB,&numTet,&k)){
-
-                  /*
-                  if(!foundInter){
-                     subIntersectionVector[subD*numTet+numS]=true;
-                     foundInter=true;
-                  }
-                  */
-                  
-                  if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
-                     if(!foundInter){
-                        subIntersectionVector[subD*numTet+numS]=true;
-                        foundInter=true;
-                     }
-                  }
-
-               }
-               
-            }
-
-
-         }
-
-
+      //V1
+      size_t beginLoopK=numS*size_loop;
+      size_t endLoopK;
+      if(numS==subD){
+         endLoopK=numberTets;
       } else {
+         endLoopK=(numS+1)*size_loop;
+      }
 
-         for(size_t k=numS*size_loop; k<(numS+1)*size_loop; k++){
+      /*
+      size_t debugValue = endLoopK-beginLoopK;
+      if(debugValue>696){
+         printf("%lu\n",debugValue);
+      }
+      */
 
-            if(!checkSameTet(idArrayD,&numTet,&k)){
- 
+      for(size_t k=beginLoopK; k<endLoopK; k++){
+      //for(size_t k=beginLoopK; k<beginLoopK+650; k++){
+
+         if(!checkSameTet(idArrayD,&numTet,&k)){
+
+            /*
+
+               if(!foundInter){
+               subIntersectionVector[subD*numTet+numS]=true;
+               foundInter=true;
+               }
+
+            */
+
+            if(checkSphereIntersection(centerSphereB,&numTet,&k)){
+
                /*
-                  if(!foundInter){
-                     subIntersectionVector[subD*numTet+numS]=true;
-                     foundInter=true;
-                  }
-
+               if(!foundInter){
+                  subIntersectionVector[subD*numTet+numS]=true;
+                  foundInter=true;
+               }
                */
 
                
-               if(checkSphereIntersection(centerSphereB,&numTet,&k)){
-    
-                  /*
+               if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
                   if(!foundInter){
                      subIntersectionVector[subD*numTet+numS]=true;
                      foundInter=true;
                   }
-                  */
-
-                  if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
-                     if(!foundInter){
-                        subIntersectionVector[subD*numTet+numS]=true;
-                        foundInter=true;
-                     }
-                  }
-                  
                }
                
 
             }
 
          }
-
       }
 
    }

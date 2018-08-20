@@ -93,7 +93,7 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
          }
 
          //Subdivision buffers
-         this->numberSub=100;
+         this->numberSub=10;
          size_t size_subdividedCollisionVector = this->numberSub*this->numTets*sizeof(bool);
          error=cudaMalloc((void **) &(this->subdividedCollisionVector_d), size_subdividedCollisionVector);
          if (error != cudaSuccess) {
@@ -248,6 +248,7 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
 
    //Check collision
    size_t size_loop = size_t(float(this->numTets)/float(this->numberSub));
+   
    //printf("DEBUG %lu\n",size_loop);
 
    //checkForIntersectionV0<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
