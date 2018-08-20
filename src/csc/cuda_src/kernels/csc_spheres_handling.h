@@ -3,19 +3,19 @@
 
 //Check the intersection between two sphere in the buffers
 
-__device__ bool checkSphereIntersection(float* centerSphereID, size_t s1, size_t s2){
+__device__ bool checkSphereIntersection(float* centerSphereID, size_t *s1, size_t *s2){
 
    float distCenter = 
-      (centerSphereID[4*s1] - centerSphereID[4*s2])*
-      (centerSphereID[4*s1] - centerSphereID[4*s2])+
-      (centerSphereID[4*s1+1] - centerSphereID[4*s2+1])*
-      (centerSphereID[4*s1+1] - centerSphereID[4*s2+1])+
-      (centerSphereID[4*s1+2] - centerSphereID[4*s2+2])*
-      (centerSphereID[4*s1+2] - centerSphereID[4*s2+2]);
+      (centerSphereID[4*(*s1)] - centerSphereID[4*(*s2)])*
+      (centerSphereID[4*(*s1)] - centerSphereID[4*(*s2)])+
+      (centerSphereID[4*(*s1)+1] - centerSphereID[4*(*s2)+1])*
+      (centerSphereID[4*(*s1)+1] - centerSphereID[4*(*s2)+1])+
+      (centerSphereID[4*(*s1)+2] - centerSphereID[4*(*s2)+2])*
+      (centerSphereID[4*(*s1)+2] - centerSphereID[4*(*s2)+2]);
 
 
    distCenter=sqrt(distCenter);
-   float addRadius = centerSphereID[4*s1+3] + centerSphereID[4*s2+3]; 
+   float addRadius = centerSphereID[4*(*s1)+3] + centerSphereID[4*(*s2)+3]; 
 
    if(distCenter<addRadius){
       return true;

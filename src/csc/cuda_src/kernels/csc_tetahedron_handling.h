@@ -7,24 +7,38 @@
 //__constant__ size_t edgesID_d[12];
 
 //Check if two tetrahedron are the same one (if they have the same indexed points)
-__device__ bool checkSameTet(size_t* idArrayD, size_t s1, size_t s2){
+__device__ bool checkSameTet(size_t* idArrayD, size_t* s1, size_t* s2){
 
-   bool isSame=true;
+   bool isSameInter;
+
+   //Avoid too many reading (not a good idea)
+   /*
+   size_t id1[4], id2[4];
+   id1[0] = idArrayD[4*(*s1)];
+   id1[1] = idArrayD[4*(*s1)+1];
+   id1[2] = idArrayD[4*(*s1)+2];
+   id1[3] = idArrayD[4*(*s1)+3]; 
+   id2[0] = idArrayD[4*(*s2)];
+   id2[1] = idArrayD[4*(*s2)+1];
+   id2[2] = idArrayD[4*(*s2)+2];
+   id2[3] = idArrayD[4*(*s2)+3];
+   */
+
    for(size_t k=0; k<4; k++){
-      bool isSameInter=false;
+      isSameInter=false;
       for(size_t i=0; i<4; i++){
-         if(idArrayD[4*s1+k]==idArrayD[4*s2+i]){
+         if(idArrayD[4*(*s1)+k]==idArrayD[4*(*s2)+i]){
+         //if(id1[k]==id2[i]){
             isSameInter=true;
-            break;
+            //break;
          }
       }
       if(!isSameInter){
-         isSame=false;
-         break;
+         return false;
       }
    }
 
-   return isSame;
+   return true;
 }
 
 __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, float* normalBuf, size_t s1, size_t s2){
@@ -237,7 +251,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
                   results_inter1=1;
                } else if(results_inter1==-1){
                   results_inter1=0;
-                  break;
+                  //break;
                } else if(results_inter1==1){
                   //OK nothing
                }
@@ -248,7 +262,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
                   //OK nothing
                } else if(results_inter1==1){
                   results_inter1=0;
-                  break;
+                  //break;
                }
             }
 
@@ -276,7 +290,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
                   results_inter2=1;
                } else if(results_inter2==-1){
                   results_inter2=0;
-                  break;
+                  //break;
                } else if(results_inter2==1){
                   //OK nothing
                }
@@ -287,7 +301,7 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
                   //OK nothing
                } else if(results_inter2==1){
                   results_inter2=0;
-                  break;
+                  //break;
                }
             }
 
