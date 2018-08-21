@@ -25,11 +25,17 @@ class MeshStructureCollider {
       float* normalBuf_d;
       bool* collideVectorArray;
       bool* collideVectorArray_d;
-      //Subdivision
+      //Subdivision(loop)
       size_t numberSub;
       bool useSubdivision;
       bool* subdividedCollisionVector_d;
       std::vector<size_t> associationVector;
+      //Spacial subdivision
+      bool useSpatialSubdivision;
+      size_t numberOfSpatialSubdivision;
+      float* subdivisionXYZArray;
+      float* subdivisionXYZArray_d;
+      bool* spatialSub_d; //Maybe it has to be re-thought
 
 };
 

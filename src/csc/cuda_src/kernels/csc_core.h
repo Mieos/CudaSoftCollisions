@@ -193,4 +193,124 @@ __global__ void checkTetOrientations(float*  dataPointsD, size_t* idArrayD, size
    }
 
 }
+
+__global__ void updateSpatialSub(float*  dataPointsD, size_t* idArrayD, size_t numberTets, float* espaceDistribustion, size_t numberOfSpatialSubdivision, bool* spatialSub){
+
+   size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
+
+   if(numTet<numberTets){
+
+      //Get the ids
+      size_t id1 = idArrayD[4*numTet];
+      size_t id2 = idArrayD[4*numTet+1];
+      size_t id3 = idArrayD[4*numTet+2];
+      size_t id4 = idArrayD[4*numTet+3];
+
+      //Get the points
+      float p1[3], p2[3], p3[3], p4[3];
+      //p1
+      p1[0] = dataPointsD[3*id1];
+      p1[1] = dataPointsD[3*id1+1];
+      p1[2] = dataPointsD[3*id1+2];
+      //p2
+      p2[0] = dataPointsD[3*id2];
+      p2[1] = dataPointsD[3*id2+1];
+      p2[2] = dataPointsD[3*id2+2];
+      //p3
+      p3[0] = dataPointsD[3*id3];
+      p3[1] = dataPointsD[3*id3+1];
+      p3[2] = dataPointsD[3*id3+2];
+      //p4
+      p4[0] = dataPointsD[3*id4];
+      p4[1] = dataPointsD[3*id4+1];
+      p4[2] = dataPointsD[3*id4+2];
+      
+      bool foundInitXYZ[3];
+      foundInitXYZ[0]=false;
+      foundInitXYZ[1]=false;
+      foundInitXYZ[2]=false;
+      
+      size_t beginXYZ[3];
+      size_t endXYZ[3];
+
+      for(size_t k=0; k<numberOfSpatialSubdivision; k++){
+      
+         for(size_t i=0; i<3; i++){
+        
+            //P1
+            if((espaceDistribustion[i*numberOfSpatialSubdivision+k] <= p1[i]) &&
+               (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p1[i])){
+               
+               if(!foundInitXYZ[i]){
+                 beginXYZ[i]=k;
+                 foundInitXYZ[i]=true;
+               }
+               endXYZ[i]=k;
+
+            }
+   
+            //P2
+            if((espaceDistribustion[i*numberOfSpatialSubdivision+k] <= p2[i]) &&
+               (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p2[i])){
+               
+               if(!foundInitXYZ[i]){
+                 beginXYZ[i]=k;
+                 foundInitXYZ[i]=true;
+               }
+               endXYZ[i]=k;
+
+            }
+
+
+            //P3
+            if((espaceDistribustion[i*numberOfSpatialSubdivision+k] <= p3[i]) &&
+               (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p3[i])){
+               
+               if(!foundInitXYZ[i]){
+                 beginXYZ[i]=k;
+                 foundInitXYZ[i]=true;
+               }
+               endXYZ[i]=k;
+
+            }
+
+
+            //P4
+            if((espaceDistribustion[i*numberOfSpatialSubdivision+k] <= p4[i]) &&
+               (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p4[i])){
+               
+               if(!foundInitXYZ[i]){
+                 beginXYZ[i]=k;
+                 foundInitXYZ[i]=true;
+               }
+               endXYZ[i]=k;
+
+            }
+
+         }
+
+      }
+
+      size_t ySkip = numberOfSpatialSubdivision;
+      size_t zSkip = numberOfSpatialSubdivision*numberOfSpatialSubdivision;
+      size_t tSkip = numberOfSpatialSubdivision*ySkip;
+
+      for(size_t i=beginXYZ[0]; i<endXYZ[0]; i++){
+      
+         for(size_t j=beginXYZ[1]; j<endXYZ[1]; j++){
+         
+            for(size_t k=beginXYZ[2]; k<endXYZ[2]; k++){
+            
+               spatialSub[numTet*tSkip+i*zSkip+j*ySkip+k]=true;
+
+            }
+
+         }
+
+      }
+      
+
+   }
+
+}
 #endif
