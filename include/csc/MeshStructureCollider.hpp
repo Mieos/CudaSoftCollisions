@@ -27,6 +27,7 @@ class MeshStructureCollider {
       bool* collideVectorArray_d;
       //Subdivision
       size_t numberSub;
+      bool useSubdivision;
       bool* subdividedCollisionVector_d;
       std::vector<size_t> associationVector;
 

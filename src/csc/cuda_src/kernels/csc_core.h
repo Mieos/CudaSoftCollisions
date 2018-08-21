@@ -11,7 +11,7 @@ __global__ void checkForIntersectionV0(float*  dataPointsD, size_t* idArrayD, fl
 
    if(numTet<numberTets){
 
-      intersectionVector[numTet]=false;
+      //intersectionVector[numTet]=false;
 
       for(size_t k=0; k<numberTets; k++){
 
@@ -59,14 +59,13 @@ __global__ void checkForIntersectionV1(float*  dataPointsD, size_t* idArrayD, fl
       }
 
       /*
-      size_t debugValue = endLoopK-beginLoopK;
-      if(debugValue>696){
+         size_t debugValue = endLoopK-beginLoopK;
+         if(debugValue>696){
          printf("%lu\n",debugValue);
-      }
-      */
+         }
+         */
 
       for(size_t k=beginLoopK; k<endLoopK; k++){
-      //for(size_t k=beginLoopK; k<beginLoopK+650; k++){
 
          if(!checkSameTet(idArrayD,&numTet,&k)){
 
@@ -77,25 +76,25 @@ __global__ void checkForIntersectionV1(float*  dataPointsD, size_t* idArrayD, fl
                foundInter=true;
                }
 
-            */
+*/
 
             if(checkSphereIntersection(centerSphereB,&numTet,&k)){
 
                /*
-               if(!foundInter){
+                  if(!foundInter){
                   subIntersectionVector[subD*numTet+numS]=true;
                   foundInter=true;
-               }
-               */
+                  }
+                  */
 
-               
+
                if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
                   if(!foundInter){
                      subIntersectionVector[subD*numTet+numS]=true;
                      foundInter=true;
                   }
                }
-               
+
 
             }
 
@@ -112,7 +111,7 @@ __global__ void reduceIntersectionVector(size_t numberTets, size_t subStep, bool
 
    if(numTet<numberTets){
 
-      subIntersectionVector[numTet]=false;
+      //subIntersectionVector[numTet]=false;
 
       for(size_t k=0; k<subStep; k++){
 
@@ -126,4 +125,72 @@ __global__ void reduceIntersectionVector(size_t numberTets, size_t subStep, bool
 
 }
 
+__global__ void checkTetOrientations(float*  dataPointsD, size_t* idArrayD, size_t numberTets, bool* intersectionVector){
+
+   size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
+
+   if(numTet<numberTets){
+
+      intersectionVector[numTet]=false;
+
+      size_t idTetConsidered[4];
+      idTetConsidered[0] = idArrayD[4*numTet];
+      idTetConsidered[1] = idArrayD[4*numTet+1];
+      idTetConsidered[2] = idArrayD[4*numTet+2];
+      idTetConsidered[3] = idArrayD[4*numTet+3];
+
+      //Points of oriented surface + last point
+      size_t idOrientedTetFaces[] = {
+         0,1,2,3,
+         0,2,3,1,
+         0,3,1,2,
+         2,1,3,0
+      };
+
+      for(size_t k=0; k<4; k++){
+
+         //Get id faces
+         size_t id1,id2,id3, idOut;
+         id1=idTetConsidered[idOrientedTetFaces[4*k]];
+         id2=idTetConsidered[idOrientedTetFaces[4*k+1]];
+         id3=idTetConsidered[idOrientedTetFaces[4*k+2]];
+         idOut=idTetConsidered[idOrientedTetFaces[4*k+3]];
+
+         //The points
+         float P1[3];
+         float P2[3];
+         float P3[3];
+         float POut[3];
+
+         for(size_t i=0; i<3; i++){
+            P1[i] = dataPointsD[3*id1+i];
+            P2[i] = dataPointsD[3*id2+i];
+            P3[i] = dataPointsD[3*id3+i];
+            POut[i] = dataPointsD[3*idOut+i];
+         }
+
+         //The vector
+         float v1[3], v2[3], v3[3];
+         for(size_t i=0; i<3; i++){
+            v1[i]=P2[i]-P1[i];
+            v2[i]=P3[i]-P1[i];
+            v3[i]=POut[i]-P1[i];
+         }
+
+         float v1Vv2[3];
+         v1Vv2[0] = v1[1]*v2[2] - v1[2]*v2[1];
+         v1Vv2[1] = v1[2]*v2[0] - v1[0]*v2[2];
+         v1Vv2[2] = v1[0]*v2[1] - v1[1]*v2[0];
+
+         float dotP = v1Vv2[0]*v3[0] + v1Vv2[1]*v3[1] + v1Vv2[2]*v3[2];
+
+         if(dotP>0){
+            intersectionVector[numTet]=true;
+         }
+
+      }
+
+   }
+
+}
 #endif

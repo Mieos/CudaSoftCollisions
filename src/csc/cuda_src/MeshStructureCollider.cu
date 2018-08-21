@@ -93,6 +93,7 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
          }
 
          //Subdivision buffers
+         this->useSubdivision=false;
          this->numberSub=10;
          size_t size_subdividedCollisionVector = this->numberSub*this->numTets*sizeof(bool);
          error=cudaMalloc((void **) &(this->subdividedCollisionVector_d), size_subdividedCollisionVector);
@@ -189,10 +190,10 @@ bool MeshStructureCollider::updatePointsPositions(const cv::Mat & newPositions){
    cudaDeviceProp prop;
    cudaGetDeviceProperties(&prop,0);
    size_t sizeBlockToUse = sqrt (prop.maxThreadsDim[0]);
-   
+
    //Reduce the number of thread in one direction in order to avoid ressources exhaustment
    size_t dimXReducedBlock = size_t(0.75 * float(sizeBlockToUse)); 
-   
+
    //Compute size of the grid needed
    size_t sizeGridx = ceil(float(this->numTets)/float(dimXReducedBlock*sizeBlockToUse));
    size_t sizeGridy = 1;
@@ -234,25 +235,33 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
    cudaDeviceProp prop;
    cudaGetDeviceProperties(&prop,0);
    size_t sizeBlockToUse = sqrt (prop.maxThreadsDim[0]);
-   
+
    //Reduce the number of thread in one direction in order to avoid ressources exhaustment
    size_t dimXReducedBlock = size_t(0.75 * float(sizeBlockToUse)); 
-   
+
    //Compute size of the grid needed
    size_t sizeGridx = ceil(float(this->numTets)/float(dimXReducedBlock*sizeBlockToUse));
-   size_t sizeGridy = this->numberSub;
-   //size_t sizeGridy = 1;
-
+   size_t sizeGridy;
+   if(this->useSubdivision){
+      sizeGridy = this->numberSub;
+   } else {
+      sizeGridy = 1;
+   }
    dim3 dimGrid(sizeGridx,sizeGridy);
    dim3 dimBlock(dimXReducedBlock, sizeBlockToUse);
 
-   //Check collision
-   size_t size_loop = size_t(float(this->numTets)/float(this->numberSub));
-   
-   //printf("DEBUG %lu\n",size_loop);
+   //Check orientation
+   dim3 dimGridOrientation(sizeGridx,1);
+   checkTetOrientations<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->numTets, this->collideVectorArray_d);
 
-   //checkForIntersectionV0<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
-   checkForIntersectionV1<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, size_loop, this->subdividedCollisionVector_d); 
+   //Check collision
+   if(this->useSubdivision){
+      size_t size_loop = size_t(float(this->numTets)/float(this->numberSub));
+      checkForIntersectionV1<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, size_loop, this->subdividedCollisionVector_d); 
+   } else {
+      checkForIntersectionV0<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
+   }
+
    error=cudaGetLastError();
    if ( cudaSuccess != error ){ 
       fprintf(stderr, "Error collision\n");
@@ -263,22 +272,25 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
       fprintf(stderr, "Error collision(synchro)\n");
       fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
    }
- 
-  
-   //Reduction
-   dim3 dimGridReduction(sizeGridx,1);
-   reduceIntersectionVector<<<dimGridReduction, dimBlock>>>(this->numTets, this->numberSub, this->subdividedCollisionVector_d, this->collideVectorArray_d);
-   error=cudaGetLastError();
-   if ( cudaSuccess != error ){ 
-      fprintf(stderr, "Error reduction\n");
-      fprintf(stderr, "Kernel: %s\n", cudaGetErrorString(error));
-   } 
-   error = cudaDeviceSynchronize();
-   if ( cudaSuccess != error ){ 
-      fprintf(stderr, "Error reduction(synchro)\n");
-      fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
-   }
 
+   //Reduce if needed (if subdivision is used)
+   if(this->useSubdivision){
+      
+      dim3 dimGridReduction(sizeGridx,1);
+      reduceIntersectionVector<<<dimGridReduction, dimBlock>>>(this->numTets, this->numberSub, this->subdividedCollisionVector_d, this->collideVectorArray_d);
+      error=cudaGetLastError();
+      if ( cudaSuccess != error ){ 
+         fprintf(stderr, "Error reduction\n");
+         fprintf(stderr, "Kernel: %s\n", cudaGetErrorString(error));
+      } 
+      error = cudaDeviceSynchronize();
+      if ( cudaSuccess != error ){ 
+         fprintf(stderr, "Error reduction(synchro)\n");
+         fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
+      }
+
+   }
+   
    //Get results
    size_t sizeResult = this->numTets * sizeof(bool);
    error = cudaMemcpy(this->collideVectorArray, this->collideVectorArray_d, sizeResult, cudaMemcpyDeviceToHost);
