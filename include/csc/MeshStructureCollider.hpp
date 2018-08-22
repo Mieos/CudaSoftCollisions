@@ -13,7 +13,19 @@ class MeshStructureCollider {
       bool isProperlyInitialized();
       bool updatePointsPositions(const cv::Mat & newPositions);
       bool collide(std::vector<bool> & collisionList);
+      bool collideAndGetInversions(std::vector<bool> & collisionList, std::vector<bool> & inversionList);
    private:
+      /////////////
+      //Functions//
+      /////////////
+      bool collide();
+      static bool cudaAllocation(void ** pointer_d, size_t sizeUsed, std::string errorName);
+      static bool copyTodevice(void* pointer_gpu, void* pointer_cpu, size_t sizeUsed , std::string errorName);
+      static bool copyTohost(void* pointer_cpu, void* pointer_gpu, size_t sizeUsed , std::string errorName);
+      static bool checkGPUerrors(std::string errorName);
+      //////////////
+      //Parameters//
+      //////////////
       bool initialized;
       bool verbose;
       size_t numPoints;
@@ -23,8 +35,12 @@ class MeshStructureCollider {
       size_t* tetId_d;
       float* sphereBuf_d;
       float* normalBuf_d;
+      //Collisions vectors (results)
       bool* collideVectorArray;
       bool* collideVectorArray_d;
+      //Inversions vectors (results)
+      bool * inversionTetVectorArray;
+      bool * inversionTetVectorArray_d;
       //Subdivision(loop)
       size_t numberSub;
       bool useSubdivision;

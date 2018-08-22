@@ -8,7 +8,7 @@
 MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std::vector<std::vector<size_t> > & tetIdVector, const std::vector<size_t> & associationVectorU) : initialized(false), numPoints(0), verbose(true){
 
    //Cuda error
-   cudaError_t error;
+   bool errorDetected = false;
 
    std::vector<float> array;
 
@@ -16,6 +16,7 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 
       this->numPoints=dataMesh.rows;
       this->useSubdivision=false;
+      this->numberOfSpatialSubdivision=10;
       this->useSpatialSubdivision=false; //NOT WORKING FIXME
 
       if(dataMesh.cols==3){
@@ -31,17 +32,13 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 
          //Copy points to gpu
          size_t size_data = 3*this->numPoints*sizeof(float);
-         error=cudaMalloc((void **) &(this->data_d), size_data);
-         if (error != cudaSuccess) {
-            fprintf(stderr, "Issue while initializing data buffer\n");
-            fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+         if(!MeshStructureCollider::cudaAllocation((void **) &(this->data_d), size_data, "Data buffer")){
+            errorDetected=true;
+         } else {
+            if(!MeshStructureCollider::copyTodevice(this->data_d,this->dataArrayBuff,size_data,"Data buffer")){
+               errorDetected=true;
+            }
          }
-         error=cudaMemcpy(this->data_d, this->dataArrayBuff, size_data, cudaMemcpyHostToDevice);
-         if (error != cudaSuccess) {
-            fprintf(stderr, "Issue while loading data on GPU\n");
-            fprintf(stderr, "cudaMemcpy failed: %s\n", cudaGetErrorString(error));
-         }
-
 
          //Copy the index of the tetrahedrons
          this->numTets=tetIdVector.size();
@@ -51,9 +48,9 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 
             if(tetIdVector.at(k).size()!=4){
                std::cout << "Issue with association vector in collider initialisation, abort.."<< std::endl;
+               errorDetected=true;
                break;
             }
-
             tetVectorPointer[4*k] = tetIdVector.at(k).at(0);
             tetVectorPointer[4*k+1] = tetIdVector.at(k).at(1);
             tetVectorPointer[4*k+2] = tetIdVector.at(k).at(2);
@@ -61,17 +58,14 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 
          }
 
+         //Copy index to GPUs
          size_t size_tetVector = 4*this->numTets*sizeof(size_t);
-         error=cudaMalloc((void **) &(this->tetId_d), size_tetVector);
-         if (error != cudaSuccess) {
-            fprintf(stderr, "Issue while initializing data buffer (structure)\n");
-            fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
-         }
-
-         error=cudaMemcpy(this->tetId_d, tetVectorPointer, size_tetVector, cudaMemcpyHostToDevice);
-         if (error != cudaSuccess) {
-            fprintf(stderr, "Issue while loading data (structure) on GPU\n");
-            fprintf(stderr, "cudaMemcpy failed: %s\n", cudaGetErrorString(error));
+         if(!MeshStructureCollider::cudaAllocation((void **) &(this->tetId_d), size_tetVector, "Structure")){
+            errorDetected=true;
+         } else {
+            if(!MeshStructureCollider::copyTodevice(this->tetId_d,tetVectorPointer,size_tetVector,"Structure")){
+               errorDetected=true;
+            }
          }
 
          //Copy the association vector
@@ -79,67 +73,65 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 
          //Create sphere buffer: (x y z radius)
          size_t size_sphereBuffer = 4*this->numTets*sizeof(float);
-         error=cudaMalloc((void **) &(this->sphereBuf_d), size_sphereBuffer);
-         if (error != cudaSuccess) {
-            fprintf(stderr, "Issue while initializing buffer of spheres\n");
-            fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+         if(!MeshStructureCollider::cudaAllocation((void **) &(this->sphereBuf_d), size_sphereBuffer, "Spheres")){
+            errorDetected=true;
          }
-
 
          //Create normal buffer for tetrahedron (n1 n2 n3 n4 P0)
          size_t size_normalBuffer = 4*6*this->numTets*sizeof(float);
-         error=cudaMalloc((void **) &(this->normalBuf_d), size_normalBuffer);
-         if (error != cudaSuccess) {
-            fprintf(stderr, "Issue while initializing normal buffer\n");
-            fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
-         }
-
-         //Subdivision buffers
-         if(this->useSubdivision){
-            this->numberSub=10;
-            size_t size_subdividedCollisionVector = this->numberSub*this->numTets*sizeof(bool);
-            error=cudaMalloc((void **) &(this->subdividedCollisionVector_d), size_subdividedCollisionVector);
-            if (error != cudaSuccess) {
-               fprintf(stderr, "Issue while creating subdivision vector\n");
-               fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
-            }
+         if(!MeshStructureCollider::cudaAllocation((void **) &(this->normalBuf_d), size_normalBuffer, "Normals")){
+            errorDetected=true;
          }
 
          //Create collision vector (CPU and GPU)
          this->collideVectorArray = new bool[this->numTets];
          size_t size_collideVectorArray = this->numTets*sizeof(bool); 
-         error=cudaMalloc((void **) &(this->collideVectorArray_d), size_collideVectorArray);
-         if (error != cudaSuccess) {
-            fprintf(stderr, "Issue while creating output vector\n");
-            fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+         if(!MeshStructureCollider::cudaAllocation((void **) &(this->collideVectorArray_d), 
+                  size_collideVectorArray, "Collision vector")){
+            errorDetected=true;
+         }
+
+         //Create inversion vector (CPU and GPU)
+         this->inversionTetVectorArray = new bool[this->numTets];
+         size_t size_inversionTetVectorArray = this->numTets*sizeof(bool); 
+         if(!MeshStructureCollider::cudaAllocation((void **) &(this->inversionTetVectorArray_d), 
+                  size_inversionTetVectorArray, "Inversion vector")){
+            errorDetected=true;
+         }
+
+         //Subdivision buffers
+         if(this->useSubdivision){
+            size_t size_subdividedCollisionVector = this->numberSub*this->numTets*sizeof(bool);
+            if(!MeshStructureCollider::cudaAllocation((void **) &(this->subdividedCollisionVector_d), 
+                     size_subdividedCollisionVector, "Loop subdivision vector")){
+               errorDetected=true;
+            }
          }
 
          //Spatial subdivision
          if(this->useSpatialSubdivision){
 
             //Limits
-            this->numberOfSpatialSubdivision=10;
             this->subdivisionXYZArray=new float[3*(this->numberOfSpatialSubdivision+1)];
             size_t size_subarrayBorder = 3*(this->numberOfSpatialSubdivision+1)*sizeof(float);
-            error=cudaMalloc((void **) &(this->subdivisionXYZArray_d), size_subarrayBorder);
-            if (error != cudaSuccess) {
-               fprintf(stderr, "Issue while creating spatial subdivision vector\n");
-               fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+            if(!MeshStructureCollider::cudaAllocation((void **) &(this->subdivisionXYZArray_d), 
+                     size_subarrayBorder, "Loop subdivision vector")){
+               errorDetected=true;
             }
 
             //State of each tetrahedron
             size_t size_spatialSub = this->numberOfSpatialSubdivision*this->numberOfSpatialSubdivision*this->numberOfSpatialSubdivision*this->numTets*sizeof(bool);
-            error=cudaMalloc((void **) &(this->spatialSub_d), size_spatialSub);
-            if (error != cudaSuccess) {
-               fprintf(stderr, "Issue while creating spatial subdivision vector (2)\n");
-               fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+            if(!MeshStructureCollider::cudaAllocation((void **) &(this->spatialSub_d), 
+                     size_spatialSub, "Loop subdivision vector")){
+               errorDetected=true;
             }
 
          }
 
          //Update state
-         this->initialized=true;
+         this->initialized=!errorDetected;
 
+         //Delete intermediate vector
          delete[] tetVectorPointer;
 
       } else {
@@ -154,16 +146,91 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 
 }
 
+//Cuda Allocation
+bool MeshStructureCollider::cudaAllocation(void ** pointer_d, size_t sizeUsed, std::string errorName){
+
+   //Error
+   cudaError_t error;
+
+   error=cudaMalloc(pointer_d, sizeUsed);
+   if (error != cudaSuccess) {
+      std::string errorString = "Issue during buffer initialisation : " + errorName + "\n";
+      std::cerr << errorString;
+      fprintf(stderr, "cudaMalloc failed: %s\n", cudaGetErrorString(error));
+      return false;
+   } else {
+      return true;
+   }
+
+}
+
+//Cuda CopyToDevice
+bool MeshStructureCollider::copyTodevice(void* pointer_gpu, void* pointer_cpu, size_t sizeUsed , std::string errorName){
+
+   //Error
+   cudaError_t error;
+
+   error=cudaMemcpy(pointer_gpu, pointer_cpu, sizeUsed, cudaMemcpyHostToDevice);
+   if (error != cudaSuccess) {
+      std::string errorString = "Issue loading CPU to GPU : " + errorName + "\n";
+      std::cerr << errorString;
+      fprintf(stderr, "cudaMemcpy failed: %s\n", cudaGetErrorString(error));
+      return false;
+   } else {
+      return true;
+   }
+
+}
+
+//Cuda CopyToHost
+bool MeshStructureCollider::copyTohost(void* pointer_cpu, void* pointer_gpu, size_t sizeUsed , std::string errorName){
+
+   //Error
+   cudaError_t error;
+
+   error=cudaMemcpy(pointer_cpu, pointer_gpu, sizeUsed, cudaMemcpyDeviceToHost);
+   if (error != cudaSuccess) {
+      std::string errorString = "Issue loading GPU to CPU : " + errorName + "\n";
+      std::cerr << errorString;
+      fprintf(stderr, "cudaMemcpy failed: %s\n", cudaGetErrorString(error));
+      return false;
+   } else {
+      return true;
+   }
+
+}
+
+
+bool MeshStructureCollider::checkGPUerrors(std::string errorName){
+   if ( cudaSuccess != cudaGetLastError() ){ 
+      std::cerr << "Error Kernel : " << errorName << std::endl;
+      return false;
+   }
+   cudaDeviceSynchronize();
+   if ( cudaSuccess != cudaGetLastError() ){ 
+      std::cerr << "Error Kernel : " << errorName << " (sync)" << std::endl;
+      return false;
+   }
+   return true;
+}
+
 //Destroy all the buffers
 MeshStructureCollider::~MeshStructureCollider(){
 
+   //CPU arrays
    delete[] this->dataArrayBuff;
    delete[] this->collideVectorArray;
+   delete[] this->inversionTetVectorArray;
+
+   //GPU arrays
    cudaFree(this->data_d);
    cudaFree(this->tetId_d);
    cudaFree(this->sphereBuf_d);
    cudaFree(this->normalBuf_d);
+   cudaFree(this->inversionTetVectorArray_d);
+   cudaFree(this->collideVectorArray_d);
 
+   //Optional arrays (CPU and GPU)
    if(this->useSubdivision){
       cudaFree(this->subdividedCollisionVector_d);
    }
@@ -282,8 +349,11 @@ bool MeshStructureCollider::updatePointsPositions(const cv::Mat & newPositions){
 
    }
 
-   size_t size_data = 3*this->numPoints*sizeof(float);
-   cudaMemcpy(this->data_d, this->dataArrayBuff, size_data, cudaMemcpyHostToDevice);
+   //Copy to GPU
+   size_t size_data = 3*this->numPoints*sizeof(float); 
+   if(!MeshStructureCollider::copyTodevice(this->data_d,this->dataArrayBuff,size_data,"Data Update")){
+      return false;
+   }
 
    if(this->useSpatialSubdivision){
 
@@ -299,49 +369,38 @@ bool MeshStructureCollider::updatePointsPositions(const cv::Mat & newPositions){
 
       //Copy to buffer
       size_t size_subdivisionArray=3*this->numberOfSpatialSubdivision*sizeof(float);
-      cudaMemcpy(this->subdivisionXYZArray_d, this->subdivisionXYZArray, size_subdivisionArray, cudaMemcpyHostToDevice);
+      if(!MeshStructureCollider::copyTodevice(this->subdivisionXYZArray_d, this->subdivisionXYZArray,
+               size_subdivisionArray, "Spatial Sub Update")){
+         return false;
+      }
 
       //Update space subdivision tet
       updateSpatialSub<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->numTets, this->subdivisionXYZArray_d, this->numberOfSpatialSubdivision, this->spatialSub_d);
-
-      if ( cudaSuccess != cudaGetLastError() ){ 
-         fprintf(stderr, "Error updating subdivision array\n");
-      }
-      cudaDeviceSynchronize();
-      if ( cudaSuccess != cudaGetLastError() ){ 
-         fprintf(stderr, "Error updating subdivision array (synchro)\n");
+      if(!MeshStructureCollider::checkGPUerrors("Update Spatial Sub")){
+         return false;
       }
 
    }
 
    //Update sphere
    updateCenterSphere<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->numTets);
-   if ( cudaSuccess != cudaGetLastError() ){ 
-      fprintf(stderr, "Error updating spheres\n");
-   }
-   cudaDeviceSynchronize();
-   if ( cudaSuccess != cudaGetLastError() ){ 
-      fprintf(stderr, "Error updating spheres (synchro)\n");
+   if(!MeshStructureCollider::checkGPUerrors("Update Spheres")){
+      return false;
    }
 
    //Update Normals Buff
    updatePlanesTet<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->normalBuf_d, this->numTets);
-   if ( cudaSuccess != cudaGetLastError() ){ 
-      fprintf(stderr, "Error updating face buffers\n");
-   }
-   cudaDeviceSynchronize();
-   if ( cudaSuccess != cudaGetLastError() ){ 
-      fprintf(stderr, "Error updating face buffers(synchro)\n");
+   if(!MeshStructureCollider::checkGPUerrors("Update Faces buffers")){
+      return false;
    }
 
    return true;
 
 }
 
-//Colliding function
-bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
+//Collision function
 
-   cudaError_t error;
+bool MeshStructureCollider::collide(){
 
    //Get the max of threads usable
    cudaDeviceProp prop;
@@ -364,18 +423,10 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
 
    //Check orientation (over time, tetrahedron can invert, this should not happen)
    dim3 dimGridOrientation(sizeGridx,1);
-   checkTetOrientations<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->numTets, this->collideVectorArray_d);
-   error=cudaGetLastError();
-   if ( cudaSuccess != error ){ 
-      fprintf(stderr, "Error collision\n");
-      fprintf(stderr, "Kernel: %s\n", cudaGetErrorString(error));
+   checkTetOrientations<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->numTets, this->inversionTetVectorArray_d);
+   if(!MeshStructureCollider::checkGPUerrors("Orientation Check")){
+      return false;
    }
-   error = cudaDeviceSynchronize();
-   if ( cudaSuccess != error ){ 
-      fprintf(stderr, "Error collision(synchro)\n");
-      fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
-   }
-
 
    //Check collision
    if(this->useSubdivision){
@@ -384,16 +435,8 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
    } else {
       checkForIntersectionV0<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
    }
-
-   error=cudaGetLastError();
-   if ( cudaSuccess != error ){ 
-      fprintf(stderr, "Error collision\n");
-      fprintf(stderr, "Kernel: %s\n", cudaGetErrorString(error));
-   }
-   error = cudaDeviceSynchronize();
-   if ( cudaSuccess != error ){ 
-      fprintf(stderr, "Error collision(synchro)\n");
-      fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
+   if(!MeshStructureCollider::checkGPUerrors("Intersection checks")){
+      return false;
    }
 
    //Reduce if needed (if subdivision is used)
@@ -401,29 +444,37 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
 
       dim3 dimGridReduction(sizeGridx,1);
       reduceIntersectionVector<<<dimGridReduction, dimBlock>>>(this->numTets, this->numberSub, this->subdividedCollisionVector_d, this->collideVectorArray_d);
-      error=cudaGetLastError();
-      if ( cudaSuccess != error ){ 
-         fprintf(stderr, "Error reduction\n");
-         fprintf(stderr, "Kernel: %s\n", cudaGetErrorString(error));
-      } 
-      error = cudaDeviceSynchronize();
-      if ( cudaSuccess != error ){ 
-         fprintf(stderr, "Error reduction(synchro)\n");
-         fprintf(stderr, "Synchro: %s\n", cudaGetErrorString(error));
+      if(!MeshStructureCollider::checkGPUerrors("Reduction")){
+         return false;
       }
 
    }
 
+   return true;
+
+}
+
+//Colliding function
+bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
+
+   cudaError_t error;
+
+   //Collide
+   this->collide();
+
    //Get results
    size_t sizeResult = this->numTets * sizeof(bool);
-   error = cudaMemcpy(this->collideVectorArray, this->collideVectorArray_d, sizeResult, cudaMemcpyDeviceToHost);
-   if (error != cudaSuccess) {
-      fprintf(stderr, "Issue while saving the collision vector\n");
-      fprintf(stderr, "cudaMemcpy failed: %s\n", cudaGetErrorString(error));
+   if(!MeshStructureCollider::copyTohost(this->inversionTetVectorArray, this->inversionTetVectorArray_d, 
+            sizeResult, "Inversion vector Copy")){
+      return false;
+   }
+   if(!MeshStructureCollider::copyTohost(this->collideVectorArray, this->collideVectorArray_d, 
+            sizeResult, "Collision vector Copy")){
+      return false;
    }
 
    for(size_t k=0; k<this->numTets;k++){
-      collisionList.at(k)=collideVectorArray[k];
+      collisionList.at(k)= (inversionTetVectorArray[k] || collideVectorArray[k]);
    }
 
    return true; 
