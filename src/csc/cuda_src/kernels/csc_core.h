@@ -4,6 +4,74 @@
 #include "csc_tetahedron_handling.h"
 
 //Check the intersection between one tetrahedron and all the others (kernels)
+__global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t* idArrayD, float* centerSphereB, float* normalsB, size_t numberTets, bool* intersectionVector, bool* inversionVector, float* movementArray){
+
+   size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
+   //printf("%u\n",subD);
+
+   if(numTet<numberTets){
+
+      intersectionVector[numTet]=false;
+      float dx,dy,dz;
+      float normV;
+
+      //Inversions
+      bool invert1=inversionVector[numTet];
+      bool invert2;
+
+      //Update movement
+      movementArray[3*numTet]=0;
+      movementArray[3*numTet+1]=0;
+      movementArray[3*numTet+2]=0;
+
+      for(size_t k=0; k<numberTets; k++){
+
+         if(!checkSameTet(idArrayD,&numTet,&k)){
+
+            if(checkSphereIntersection(centerSphereB,&numTet,&k)){
+
+               if(inversionVector[k]){
+                  invert2=true;
+               } else {
+                  invert2=false;
+               }
+
+               //intersectionVector[numTet]=true;
+               if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet, k, invert1, invert2)){
+                  intersectionVector[numTet]=true;
+
+                  dx = centerSphereB[4*numTet] - centerSphereB[4*k];
+                  dy = centerSphereB[4*numTet+1] - centerSphereB[4*k+2];
+                  dz = centerSphereB[4*numTet+2] - centerSphereB[4*k+2];
+
+                  //printf("%f",dx);
+
+                  normV=dx*dx + dy*dy + dz*dz;
+                  normV=sqrt(normV);
+
+                  dx=dx/normV;
+                  dy=dy/normV;
+                  dz=dz/normV;
+
+                  normV = 0.5*(centerSphereB[4*numTet+3] + centerSphereB[4*k+3] - normV);
+
+                  movementArray[3*numTet]=movementArray[3*numTet] + normV*dx;
+                  movementArray[3*numTet+1]=movementArray[3*numTet] + normV*dy;
+                  movementArray[3*numTet+2]=movementArray[3*numTet] + normV*dz;
+
+               }
+
+            }
+
+         }
+
+      }
+
+   }
+
+}
+
+//Check the intersection between one tetrahedron and all the others (kernels)
 __global__ void checkForIntersectionV0(float*  dataPointsD, size_t* idArrayD, float* centerSphereB, float* normalsB, size_t numberTets, bool* intersectionVector){
 
    size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
@@ -11,7 +79,7 @@ __global__ void checkForIntersectionV0(float*  dataPointsD, size_t* idArrayD, fl
 
    if(numTet<numberTets){
 
-      //intersectionVector[numTet]=false;
+      intersectionVector[numTet]=false;
 
       for(size_t k=0; k<numberTets; k++){
 
@@ -20,7 +88,7 @@ __global__ void checkForIntersectionV0(float*  dataPointsD, size_t* idArrayD, fl
             if(checkSphereIntersection(centerSphereB,&numTet,&k)){
 
                //intersectionVector[numTet]=true;
-               if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
+               if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k,false, false)){
                   intersectionVector[numTet]=true;
                }
 
@@ -88,7 +156,7 @@ __global__ void checkForIntersectionV1(float*  dataPointsD, size_t* idArrayD, fl
                   */
 
 
-               if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k)){
+               if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k,false,false)){
                   if(!foundInter){
                      subIntersectionVector[subD*numTet+numS]=true;
                      foundInter=true;
@@ -111,7 +179,7 @@ __global__ void reduceIntersectionVector(size_t numberTets, size_t subStep, bool
 
    if(numTet<numberTets){
 
-      //subIntersectionVector[numTet]=false;
+      subIntersectionVector[numTet]=false;
 
       for(size_t k=0; k<subStep; k++){
 

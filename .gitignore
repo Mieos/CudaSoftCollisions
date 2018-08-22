@@ -11,3 +11,4 @@ data/meshes/test.ply
 data/meshes/test3Dmodel.ply
 data/meshes/intersectingBunny.vtk
 data/meshes/intersectingSphere.vtk
+data/meshes/intersectingTet/debug.ply

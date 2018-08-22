@@ -13,7 +13,8 @@ class MeshStructureCollider {
       bool isProperlyInitialized();
       bool updatePointsPositions(const cv::Mat & newPositions);
       bool collide(std::vector<bool> & collisionList);
-      bool collideAndGetInversions(std::vector<bool> & collisionList, std::vector<bool> & inversionList);
+      bool collideAndGetMovements(std::vector<bool> & collisionList, std::vector<std::vector<float> > & movVect);
+      bool collideAndGetInversions(std::vector<bool> & collisionList, std::vector<bool> & inversionList); //TODO
    private:
       /////////////
       //Functions//
@@ -46,12 +47,15 @@ class MeshStructureCollider {
       bool useSubdivision;
       bool* subdividedCollisionVector_d;
       std::vector<size_t> associationVector;
-      //Spacial subdivision
+      //Spacial subdivision //Not working FIXME
       bool useSpatialSubdivision;
       size_t numberOfSpatialSubdivision;
       float* subdivisionXYZArray;
       float* subdivisionXYZArray_d;
       bool* spatialSub_d; //Maybe it has to be re-thought
+      //TODO 
+      float* movementsArray;
+      float* movementsArray_d;
 
 };
 

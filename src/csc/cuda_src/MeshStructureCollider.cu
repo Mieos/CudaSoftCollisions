@@ -128,6 +128,16 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
 
          }
 
+         //TODO
+         size_t size_movementsArray = 3*this->numTets*sizeof(float);
+         this->movementsArray = new float[3*this->numTets];
+         if(!MeshStructureCollider::cudaAllocation((void **) &(this->movementsArray_d), 
+                     size_movementsArray, "Movement array")){
+            errorDetected=true;
+         }
+
+         //end TODO
+
          //Update state
          this->initialized=!errorDetected;
 
@@ -433,7 +443,9 @@ bool MeshStructureCollider::collide(){
       size_t size_loop = size_t(float(this->numTets)/float(this->numberSub));
       checkForIntersectionV1<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, size_loop, this->subdividedCollisionVector_d); 
    } else {
-      checkForIntersectionV0<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
+      //TODO new
+      //checkForIntersectionV0<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d); 
+      checkForIntersectionV0_withmovements<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, this->collideVectorArray_d, this->inversionTetVectorArray_d, this->movementsArray_d); 
    }
    if(!MeshStructureCollider::checkGPUerrors("Intersection checks")){
       return false;
@@ -457,8 +469,6 @@ bool MeshStructureCollider::collide(){
 //Colliding function
 bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
 
-   cudaError_t error;
-
    //Collide
    this->collide();
 
@@ -475,6 +485,43 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
 
    for(size_t k=0; k<this->numTets;k++){
       collisionList.at(k)= (inversionTetVectorArray[k] || collideVectorArray[k]);
+   }
+
+   return true; 
+
+}
+
+//Colliding function
+bool MeshStructureCollider::collideAndGetMovements(std::vector<bool> & collisionList, std::vector<std::vector<float> > & movVect){
+
+   //Collide
+   this->collide();
+
+   //Get results
+   size_t sizeResult = this->numTets * sizeof(bool);
+   size_t sizeMov = 3*this->numTets*sizeof(float);
+
+   if(!MeshStructureCollider::copyTohost(this->inversionTetVectorArray, this->inversionTetVectorArray_d, 
+            sizeResult, "Inversion vector Copy")){
+      return false;
+   }
+   if(!MeshStructureCollider::copyTohost(this->collideVectorArray, this->collideVectorArray_d, 
+            sizeResult, "Collision vector Copy")){
+      return false;
+   }
+   if(!MeshStructureCollider::copyTohost(this->movementsArray, this->movementsArray_d, 
+            sizeMov, "Movement vector Copy")){
+      return false;
+   }
+
+   for(size_t k=0; k<this->numTets;k++){
+      collisionList.at(k)= (inversionTetVectorArray[k] || collideVectorArray[k]);
+      if(collisionList.at(k)){
+         movVect.at(k).clear();
+         movVect.at(k).push_back(movementsArray[3*k]);
+         movVect.at(k).push_back(movementsArray[3*k+1]);
+         movVect.at(k).push_back(movementsArray[3*k+2]);
+      }
    }
 
    return true; 

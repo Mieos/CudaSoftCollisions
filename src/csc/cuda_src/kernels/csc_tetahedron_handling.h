@@ -41,7 +41,7 @@ __device__ bool checkSameTet(size_t* idArrayD, size_t* s1, size_t* s2){
    return true;
 }
 
-__device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, float* normalBuf, size_t s1, size_t s2){
+__device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, float* normalBuf, size_t s1, size_t s2, bool inversionTet1, bool inversionTet2){
 
    /*
       printf("s1 = %u\n", s1);
@@ -103,9 +103,15 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
    size_t numPos=0;
    for(size_t k=0; k<4; k++){
 
-      normalU[0] = normalBuf[4*6*s1+k*6];
-      normalU[1] = normalBuf[4*6*s1+k*6+1];
-      normalU[2] = normalBuf[4*6*s1+k*6+2];
+      if(inversionTet1){
+         normalU[0] = -normalBuf[4*6*s1+k*6];
+         normalU[1] = -normalBuf[4*6*s1+k*6+1];
+         normalU[2] = -normalBuf[4*6*s1+k*6+2]; 
+      } else {
+         normalU[0] = normalBuf[4*6*s1+k*6];
+         normalU[1] = normalBuf[4*6*s1+k*6+1];
+         normalU[2] = normalBuf[4*6*s1+k*6+2];
+      }
       pU[0] = normalBuf[4*6*s1+k*6+3];
       pU[1] = normalBuf[4*6*s1+k*6+4];
       pU[2] = normalBuf[4*6*s1+k*6+5];
@@ -144,9 +150,15 @@ __device__ bool checkTetraIntersection(float*  dataPointsD, size_t* idArrayD, fl
    //Test all points of tet1 with faces of tet2
    numPos=0;
    for(size_t k=0; k<4;k++){
-      normalU[0] = normalBuf[4*6*s2+k*6];
-      normalU[1] = normalBuf[4*6*s2+k*6+1];
-      normalU[2] = normalBuf[4*6*s2+k*6+2];
+      if(inversionTet2){
+         normalU[0] = -normalBuf[4*6*s2+k*6];
+         normalU[1] = -normalBuf[4*6*s2+k*6+1];
+         normalU[2] = -normalBuf[4*6*s2+k*6+2];
+      } else {
+         normalU[0] = normalBuf[4*6*s2+k*6];
+         normalU[1] = normalBuf[4*6*s2+k*6+1];
+         normalU[2] = normalBuf[4*6*s2+k*6+2];
+      }
       pU[0] = normalBuf[4*6*s2+k*6+3];
       pU[1] = normalBuf[4*6*s2+k*6+4];
       pU[2] = normalBuf[4*6*s2+k*6+5];
