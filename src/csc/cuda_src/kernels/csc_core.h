@@ -41,7 +41,7 @@ __global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t
                   intersectionVector[numTet]=true;
 
                   dx = centerSphereB[4*numTet] - centerSphereB[4*k];
-                  dy = centerSphereB[4*numTet+1] - centerSphereB[4*k+2];
+                  dy = centerSphereB[4*numTet+1] - centerSphereB[4*k+1];
                   dz = centerSphereB[4*numTet+2] - centerSphereB[4*k+2];
 
                   //printf("%f",dx);
