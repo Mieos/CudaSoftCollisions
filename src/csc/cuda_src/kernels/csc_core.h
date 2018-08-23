@@ -24,11 +24,15 @@ __global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t
       movementArray[3*numTet+1]=0;
       movementArray[3*numTet+2]=0;
 
+      size_t numberColisions = 0;
+
       for(size_t k=0; k<numberTets; k++){
 
          if(!checkSameTet(idArrayD,&numTet,&k)){
 
             if(checkSphereIntersection(centerSphereB,&numTet,&k)){
+
+               numberColisions++;
 
                if(inversionVector[k]){
                   invert2=true;
@@ -65,6 +69,12 @@ __global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t
 
          }
 
+      }
+
+      if(numberColisions>0){
+         movementArray[3*numTet]=movementArray[3*numTet]/numberColisions;
+         movementArray[3*numTet+1]=movementArray[3*numTet+1]/numberColisions;
+         movementArray[3*numTet+2]=movementArray[3*numTet+2]/numberColisions;
       }
 
    }

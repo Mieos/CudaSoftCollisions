@@ -170,11 +170,9 @@ int main(int argc, char *argv[]){
       std::cout << "Intersections detected : OK" << std::endl;
    }
 
-   //TODO fix the mesh
-
    bool fixedMesh=false;
    size_t nbIt=0;
-   size_t maxIt = 1;
+   size_t maxIt = 10;
 
    while(!fixedMesh){
 
@@ -186,6 +184,7 @@ int main(int argc, char *argv[]){
             float dx = rectificationMovements.at(k).at(0);
             float dy = rectificationMovements.at(k).at(1);
             float dz = rectificationMovements.at(k).at(2);
+            //std::cout << "dx = " << dx <<std::endl;
             for(size_t i=0;i<4;i++){
                size_t idToChange = associationResults.at(tetIdVector.at(k).at(i));
                pointsMatUpdateCollision.at<float>(idToChange,0)=pointsMatUpdateCollision.at<float>(idToChange,0)+dx;
@@ -219,7 +218,6 @@ int main(int argc, char *argv[]){
       points->InsertNextPoint(x_u,y_u,z_u);
       collidingPoints.push_back(false);
    }
-   std::cout << "NUM points = " << associationResults.size() << std::endl;
 
    size_t idTetFaces[] = {
       0,1,2,
