@@ -12,8 +12,10 @@ __global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t
    if(numTet<numberTets){
 
       intersectionVector[numTet]=false;
+      /*
       float dx,dy,dz;
       float normV;
+      */
 
       //Inversions
       bool invert1=inversionVector[numTet];
@@ -44,11 +46,10 @@ __global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t
                if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet, k, invert1, invert2)){
                   intersectionVector[numTet]=true;
 
+                  /*
                   dx = centerSphereB[4*numTet] - centerSphereB[4*k];
                   dy = centerSphereB[4*numTet+1] - centerSphereB[4*k+1];
                   dz = centerSphereB[4*numTet+2] - centerSphereB[4*k+2];
-
-                  //printf("%f",dx);
 
                   normV=dx*dx + dy*dy + dz*dz;
                   normV=sqrt(normV);
@@ -62,6 +63,7 @@ __global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t
                   movementArray[3*numTet]=movementArray[3*numTet] + normV*dx;
                   movementArray[3*numTet+1]=movementArray[3*numTet] + normV*dy;
                   movementArray[3*numTet+2]=movementArray[3*numTet] + normV*dz;
+                  */
 
                }
 
@@ -71,10 +73,24 @@ __global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t
 
       }
 
-      if(numberColisions>0){
+      if(intersectionVector[numTet]){
+
+         float norm = 0.5*centerSphereB[4*numTet+3] ;
+
+         if (invert1){
+            movementArray[3*numTet] = norm * normalsB[4*6*numTet];
+            movementArray[3*numTet+1] = norm * normalsB[4*6*numTet+1];
+            movementArray[3*numTet+2] = norm * normalsB[4*6*numTet+2];
+         } else {
+            movementArray[3*numTet] = - norm * normalsB[4*6*numTet];
+            movementArray[3*numTet+1] = -norm * normalsB[4*6*numTet+1];
+            movementArray[3*numTet+2] = -norm * normalsB[4*6*numTet+2];
+         }
+         /*
          movementArray[3*numTet]=movementArray[3*numTet]/numberColisions;
          movementArray[3*numTet+1]=movementArray[3*numTet+1]/numberColisions;
          movementArray[3*numTet+2]=movementArray[3*numTet+2]/numberColisions;
+         */
       }
 
    }

@@ -132,7 +132,7 @@ int main(int argc, char *argv[]){
 
    std::cout << "Colliding ... ";
    auto startCollide = std::chrono::steady_clock::now(); 
-   msc->collide(collideVector);
+   msc->collideAndGetMovements(collideVector,rectificationMovements);
    auto endCollide = std::chrono::steady_clock::now();
    auto diffCollide = endCollide - startCollide;
    std::cout << std::chrono::duration <double, std::milli> (diffCollide).count() << " ms" << std::endl;
@@ -152,17 +152,18 @@ int main(int argc, char *argv[]){
       std::cout << "Intersection detected : OK" << std::endl;
    }
 
-   /*
-
    bool fixedMesh=false;
    size_t nbIt=0;
-   size_t maxIt = 1;
+   size_t maxIt = 10;
 
+   cv::Mat modificationMat = cv::Mat::zeros(pointsMat.rows,pointsMat.cols, CV_32FC1);
+   cv::Mat modificationMatNumber = cv::Mat::zeros(pointsMat.rows,1, CV_8UC1);
    while(!fixedMesh){
 
       nbIt++;
       std::cout << nbIt << " / " << maxIt << std::endl;
 
+      //NOPE FIXME
       for(size_t k=0; k<collideVector.size(); k++){
          if(collideVector.at(k)){
             float dx = rectificationMovements.at(k).at(0);
@@ -170,10 +171,20 @@ int main(int argc, char *argv[]){
             float dz = rectificationMovements.at(k).at(2);
             for(size_t i=0;i<4;i++){
                size_t idToChange = associationResultsT.at(tetIdVectorT.at(k).at(i));
-               pointsMat.at<float>(idToChange,0)=pointsMat.at<float>(idToChange,0)+dx;
-               pointsMat.at<float>(idToChange,1)=pointsMat.at<float>(idToChange,1)+dy;
-               pointsMat.at<float>(idToChange,2)=pointsMat.at<float>(idToChange,2)+dz;
+               modificationMat.at<float>(idToChange,0)=modificationMat.at<float>(idToChange,0)+dx;
+               modificationMat.at<float>(idToChange,1)=modificationMat.at<float>(idToChange,1)+dy;
+               modificationMat.at<float>(idToChange,2)=modificationMat.at<float>(idToChange,2)+dz;
+               modificationMatNumber.at<uchar>(idToChange,0) = modificationMatNumber.at<uchar>(idToChange,0)+1;
             }
+         }
+      }
+
+      for(size_t k=0; k<modificationMatNumber.rows; k++){
+         if(modificationMatNumber.at<uchar>(k,0)>0){
+            //std::cout << float(modificationMatNumber.at<uchar>(k,0)) << std::endl;
+            pointsMat.at<float>(k,0)=pointsMat.at<float>(k,0)+(modificationMat.at<float>(k,0)/float(modificationMatNumber.at<uchar>(k,0)));
+            pointsMat.at<float>(k,1)=pointsMat.at<float>(k,1)+(modificationMat.at<float>(k,1)/float(modificationMatNumber.at<uchar>(k,0)));
+            pointsMat.at<float>(k,2)=pointsMat.at<float>(k,2)+(modificationMat.at<float>(k,2)/float(modificationMatNumber.at<uchar>(k,0)));
          }
       }
 
@@ -190,8 +201,6 @@ int main(int argc, char *argv[]){
    }
 
    //
-
-   */
 
    vtkSmartPointer< vtkPoints > points = vtkSmartPointer< vtkPoints > :: New();
    double x_u, y_u, z_u;
