@@ -156,14 +156,14 @@ int main(int argc, char *argv[]){
    size_t nbIt=0;
    size_t maxIt = 10;
 
-   cv::Mat modificationMat = cv::Mat::zeros(pointsMat.rows,pointsMat.cols, CV_32FC1);
-   cv::Mat modificationMatNumber = cv::Mat::zeros(pointsMat.rows,1, CV_8UC1);
    while(!fixedMesh){
 
+      cv::Mat modificationMat = cv::Mat::zeros(pointsMat.rows,pointsMat.cols, CV_32FC1);
+      cv::Mat modificationMatNumber = cv::Mat::zeros(pointsMat.rows,1, CV_8UC1);
+   
       nbIt++;
       std::cout << nbIt << " / " << maxIt << std::endl;
 
-      //NOPE FIXME
       for(size_t k=0; k<collideVector.size(); k++){
          if(collideVector.at(k)){
             float dx = rectificationMovements.at(k).at(0);
@@ -181,7 +181,6 @@ int main(int argc, char *argv[]){
 
       for(size_t k=0; k<modificationMatNumber.rows; k++){
          if(modificationMatNumber.at<uchar>(k,0)>0){
-            //std::cout << float(modificationMatNumber.at<uchar>(k,0)) << std::endl;
             pointsMat.at<float>(k,0)=pointsMat.at<float>(k,0)+(modificationMat.at<float>(k,0)/float(modificationMatNumber.at<uchar>(k,0)));
             pointsMat.at<float>(k,1)=pointsMat.at<float>(k,1)+(modificationMat.at<float>(k,1)/float(modificationMatNumber.at<uchar>(k,0)));
             pointsMat.at<float>(k,2)=pointsMat.at<float>(k,2)+(modificationMat.at<float>(k,2)/float(modificationMatNumber.at<uchar>(k,0)));
@@ -193,6 +192,17 @@ int main(int argc, char *argv[]){
 
       //Collide
       msc->collideAndGetMovements(collideVector,rectificationMovements);
+
+      bool loopStop=true;
+      for(size_t k=0; k<collideVector.size(); k++){
+         if(collideVector.at(k)){
+            loopStop=false;
+         }
+      }
+
+      if(loopStop){
+         fixedMesh=true;
+      }
 
       if(nbIt>=maxIt){
          fixedMesh=true;
