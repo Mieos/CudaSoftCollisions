@@ -13,3 +13,4 @@ data/meshes/intersectingBunny.vtk
 data/meshes/intersectingSphere.vtk
 data/meshes/intersectingTet/debug.ply
 data/meshes/fixedIntersectingBunny.vtk
+data/meshes/twoSpheresMovements.vtk
