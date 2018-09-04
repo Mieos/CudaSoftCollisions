@@ -357,6 +357,39 @@ bool MeshStructureCollider::updatePointsPositions(const cv::Mat & newPositions){
 
       }
 
+   } else if(newPositions.type()==CV_64FC3){
+   
+      for(size_t k=0; k<this->associationVector.size(); k++){
+         
+         this->dataArrayBuff[3*k]=float(newPositions.at<cv::Point3d>(k).x);
+         this->dataArrayBuff[3*k+1]=float(newPositions.at<cv::Point3d>(k).y);
+         this->dataArrayBuff[3*k+2]=float(newPositions.at<cv::Point3d>(k).z);
+
+         //Updata BB values
+         if(maxX<this->dataArrayBuff[3*k]){
+            maxX=this->dataArrayBuff[3*k];
+         }
+         if(maxY<this->dataArrayBuff[3*k+1]){
+            maxY=this->dataArrayBuff[3*k+1];
+         }
+         if(maxZ<this->dataArrayBuff[3*k+2]){
+            maxZ=this->dataArrayBuff[3*k+2];
+         }
+         if(minX>this->dataArrayBuff[3*k]){
+            minX=this->dataArrayBuff[3*k];
+         }
+         if(minY>this->dataArrayBuff[3*k+1]){
+            minY=this->dataArrayBuff[3*k+1];
+         }
+         if(minZ>this->dataArrayBuff[3*k+2]){
+            minZ=this->dataArrayBuff[3*k+2];
+         }
+
+      }
+ 
+   } else {
+      std::cerr << "Error : format not recognized in update" << std::endl;
+      return false;
    }
 
    //Copy to GPU
