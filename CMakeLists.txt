@@ -7,6 +7,9 @@ project(CudaSoftCollisions)
 #Use C++11
 set(CMAKE_CXX_STANDARD 11)
 
+#Option for tests
+option(ENABLE_UNIT_TESTS "Enable tests" FALSE)
+
 ##########
 #Packages#
 ##########
@@ -48,4 +51,6 @@ include(${VTK_USE_FILE})
 add_subdirectory(src/csc)
 
 #Tests
-add_subdirectory(src/tests)
+if(ENABLE_UNIT_TESTS)
+   add_subdirectory(src/tests)
+endif()
