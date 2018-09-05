@@ -267,11 +267,6 @@ bool MeshStructureCollider::updatePointsPositions(const cv::Mat & newPositions){
       return false;
    }
 
-   //Bad number of cols
-   if(newPositions.cols!=3){
-      return false;
-   }
-
    //Get the max of threads usable
    cudaDeviceProp prop;
    cudaGetDeviceProperties(&prop,0);
@@ -361,9 +356,9 @@ bool MeshStructureCollider::updatePointsPositions(const cv::Mat & newPositions){
    
       for(size_t k=0; k<this->associationVector.size(); k++){
          
-         this->dataArrayBuff[3*k]=float(newPositions.at<cv::Point3d>(k).x);
-         this->dataArrayBuff[3*k+1]=float(newPositions.at<cv::Point3d>(k).y);
-         this->dataArrayBuff[3*k+2]=float(newPositions.at<cv::Point3d>(k).z);
+         this->dataArrayBuff[3*k]=float(newPositions.at<cv::Point3d>(associationVector.at(k)).x);
+         this->dataArrayBuff[3*k+1]=float(newPositions.at<cv::Point3d>(associationVector.at(k)).y);
+         this->dataArrayBuff[3*k+2]=float(newPositions.at<cv::Point3d>(associationVector.at(k)).z);
 
          //Updata BB values
          if(maxX<this->dataArrayBuff[3*k]){
