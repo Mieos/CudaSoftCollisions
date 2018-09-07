@@ -14,7 +14,12 @@ class MeshStructureCollider {
       bool updatePointsPositions(const cv::Mat & newPositions);
       bool collide(std::vector<bool> & collisionList);
       bool collideAndGetMovements(std::vector<bool> & collisionList, std::vector<std::vector<float> > & movVect);
-      bool collideAndGetInversions(std::vector<bool> & collisionList, std::vector<bool> & inversionList); //TODO
+      
+      //new TODO
+      bool collideAndGetMovementsAndInversions(std::vector<bool> & collisionList, std::vector<std::vector<float> > & movVect, std::vector<bool> & invertionList, std::vector<std::vector<float> > & movVectInvertion);
+
+      //bool collideAndGetInversions(std::vector<bool> & collisionList, std::vector<bool> & inversionList);
+   
    private:
       /////////////
       //Functions//
@@ -47,13 +52,15 @@ class MeshStructureCollider {
       bool useSubdivision;
       bool* subdividedCollisionVector_d;
       std::vector<size_t> associationVector;
+      
       //Spacial subdivision //Not working FIXME
       bool useSpatialSubdivision;
       size_t numberOfSpatialSubdivision;
       float* subdivisionXYZArray;
       float* subdivisionXYZArray_d;
       bool* spatialSub_d; //Maybe it has to be re-thought
-      //TODO 
+      
+      //Movements arrays 
       float* movementsArray;
       float* movementsArray_d;
 

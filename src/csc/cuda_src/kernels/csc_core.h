@@ -12,58 +12,39 @@ __global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t
    if(numTet<numberTets){
 
       intersectionVector[numTet]=false;
-      /*
-      float dx,dy,dz;
-      float normV;
-      */
 
       //Inversions
       bool invert1=inversionVector[numTet];
       bool invert2;
 
-      //Update movement
-      movementArray[3*numTet]=0;
-      movementArray[3*numTet+1]=0;
-      movementArray[3*numTet+2]=0;
-
       size_t numberColisions = 0;
 
-      for(size_t k=0; k<numberTets; k++){
+      if(!invert1) {
 
-         if(!checkSameTet(idArrayD,&numTet,&k)){
+         //Update movement
+         movementArray[3*numTet]=0;
+         movementArray[3*numTet+1]=0;
+         movementArray[3*numTet+2]=0;
 
-            if(checkSphereIntersection(centerSphereB,&numTet,&k)){
+         for(size_t k=0; k<numberTets; k++){
 
-               numberColisions++;
+            if(!checkSameTet(idArrayD,&numTet,&k)){
 
-               if(inversionVector[k]){
-                  invert2=true;
-               } else {
-                  invert2=false;
-               }
+               if(checkSphereIntersection(centerSphereB,&numTet,&k)){
 
-               //intersectionVector[numTet]=true;
-               if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet, k, invert1, invert2)){
-                  intersectionVector[numTet]=true;
+                  numberColisions++;
 
-                  /*
-                  dx = centerSphereB[4*numTet] - centerSphereB[4*k];
-                  dy = centerSphereB[4*numTet+1] - centerSphereB[4*k+1];
-                  dz = centerSphereB[4*numTet+2] - centerSphereB[4*k+2];
+                  if(inversionVector[k]){
+                     invert2=true;
+                  } else {
+                     invert2=false;
+                  }
 
-                  normV=dx*dx + dy*dy + dz*dz;
-                  normV=sqrt(normV);
-
-                  dx=dx/normV;
-                  dy=dy/normV;
-                  dz=dz/normV;
-
-                  normV = 0.5*(centerSphereB[4*numTet+3] + centerSphereB[4*k+3] - normV);
-
-                  movementArray[3*numTet]=movementArray[3*numTet] + normV*dx;
-                  movementArray[3*numTet+1]=movementArray[3*numTet] + normV*dy;
-                  movementArray[3*numTet+2]=movementArray[3*numTet] + normV*dz;
-                  */
+                  if(!invert2){
+                     if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet, k, invert1, invert2)){
+                        intersectionVector[numTet]=true;
+                     }
+                  }
 
                }
 
@@ -86,11 +67,7 @@ __global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t
             movementArray[3*numTet+1] = -norm * normalsB[4*6*numTet+1];
             movementArray[3*numTet+2] = -norm * normalsB[4*6*numTet+2];
          }
-         /*
-         movementArray[3*numTet]=movementArray[3*numTet]/numberColisions;
-         movementArray[3*numTet+1]=movementArray[3*numTet+1]/numberColisions;
-         movementArray[3*numTet+2]=movementArray[3*numTet+2]/numberColisions;
-         */
+         
       }
 
    }
@@ -152,35 +129,12 @@ __global__ void checkForIntersectionV1(float*  dataPointsD, size_t* idArrayD, fl
          endLoopK=(numS+1)*size_loop;
       }
 
-      /*
-         size_t debugValue = endLoopK-beginLoopK;
-         if(debugValue>696){
-         printf("%lu\n",debugValue);
-         }
-         */
-
       for(size_t k=beginLoopK; k<endLoopK; k++){
 
          if(!checkSameTet(idArrayD,&numTet,&k)){
 
-            /*
-
-               if(!foundInter){
-               subIntersectionVector[subD*numTet+numS]=true;
-               foundInter=true;
-               }
-
-*/
 
             if(checkSphereIntersection(centerSphereB,&numTet,&k)){
-
-               /*
-                  if(!foundInter){
-                  subIntersectionVector[subD*numTet+numS]=true;
-                  foundInter=true;
-                  }
-                  */
-
 
                if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet,k,false,false)){
                   if(!foundInter){
@@ -219,7 +173,7 @@ __global__ void reduceIntersectionVector(size_t numberTets, size_t subStep, bool
 
 }
 
-__global__ void checkTetOrientations(float*  dataPointsD, size_t* idArrayD, size_t numberTets, bool* intersectionVector){
+__global__ void checkTetOrientations(float*  dataPointsD, size_t* idArrayD, size_t numberTets, bool* intersectionVector, float* centerSphereB, float* normalsB, float* movementArray){
 
    size_t numTet = blockIdx.x*blockDim.x*blockDim.y +blockDim.x*threadIdx.y+threadIdx.x;
 
@@ -284,6 +238,13 @@ __global__ void checkTetOrientations(float*  dataPointsD, size_t* idArrayD, size
 
       }
 
+      if(intersectionVector[numTet]){
+         float norm = 1.0*centerSphereB[4*numTet+3] ;
+         movementArray[3*numTet] = - norm * normalsB[4*6*numTet];
+         movementArray[3*numTet+1] = - norm * normalsB[4*6*numTet+1];
+         movementArray[3*numTet+2] = - norm * normalsB[4*6*numTet+2];
+      }
+
    }
 
 }
@@ -318,38 +279,38 @@ __global__ void updateSpatialSub(float*  dataPointsD, size_t* idArrayD, size_t n
       p4[0] = dataPointsD[3*id4];
       p4[1] = dataPointsD[3*id4+1];
       p4[2] = dataPointsD[3*id4+2];
-      
+
       bool foundInitXYZ[3];
       foundInitXYZ[0]=false;
       foundInitXYZ[1]=false;
       foundInitXYZ[2]=false;
-      
+
       size_t beginXYZ[3];
       size_t endXYZ[3];
 
       for(size_t k=0; k<numberOfSpatialSubdivision; k++){
-      
+
          for(size_t i=0; i<3; i++){
-        
+
             //P1
             if((espaceDistribustion[i*numberOfSpatialSubdivision+k] <= p1[i]) &&
-               (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p1[i])){
-               
+                  (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p1[i])){
+
                if(!foundInitXYZ[i]){
-                 beginXYZ[i]=k;
-                 foundInitXYZ[i]=true;
+                  beginXYZ[i]=k;
+                  foundInitXYZ[i]=true;
                }
                endXYZ[i]=k;
 
             }
-   
+
             //P2
             if((espaceDistribustion[i*numberOfSpatialSubdivision+k] <= p2[i]) &&
-               (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p2[i])){
-               
+                  (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p2[i])){
+
                if(!foundInitXYZ[i]){
-                 beginXYZ[i]=k;
-                 foundInitXYZ[i]=true;
+                  beginXYZ[i]=k;
+                  foundInitXYZ[i]=true;
                }
                endXYZ[i]=k;
 
@@ -358,11 +319,11 @@ __global__ void updateSpatialSub(float*  dataPointsD, size_t* idArrayD, size_t n
 
             //P3
             if((espaceDistribustion[i*numberOfSpatialSubdivision+k] <= p3[i]) &&
-               (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p3[i])){
-               
+                  (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p3[i])){
+
                if(!foundInitXYZ[i]){
-                 beginXYZ[i]=k;
-                 foundInitXYZ[i]=true;
+                  beginXYZ[i]=k;
+                  foundInitXYZ[i]=true;
                }
                endXYZ[i]=k;
 
@@ -371,11 +332,11 @@ __global__ void updateSpatialSub(float*  dataPointsD, size_t* idArrayD, size_t n
 
             //P4
             if((espaceDistribustion[i*numberOfSpatialSubdivision+k] <= p4[i]) &&
-               (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p4[i])){
-               
+                  (espaceDistribustion[i*numberOfSpatialSubdivision+k+1] >= p4[i])){
+
                if(!foundInitXYZ[i]){
-                 beginXYZ[i]=k;
-                 foundInitXYZ[i]=true;
+                  beginXYZ[i]=k;
+                  foundInitXYZ[i]=true;
                }
                endXYZ[i]=k;
 
@@ -390,11 +351,11 @@ __global__ void updateSpatialSub(float*  dataPointsD, size_t* idArrayD, size_t n
       size_t tSkip = numberOfSpatialSubdivision*ySkip;
 
       for(size_t i=beginXYZ[0]; i<endXYZ[0]; i++){
-      
+
          for(size_t j=beginXYZ[1]; j<endXYZ[1]; j++){
-         
+
             for(size_t k=beginXYZ[2]; k<endXYZ[2]; k++){
-            
+
                spatialSub[numTet*tSkip+i*zSkip+j*ySkip+k]=true;
 
             }
@@ -402,7 +363,7 @@ __global__ void updateSpatialSub(float*  dataPointsD, size_t* idArrayD, size_t n
          }
 
       }
-      
+
 
    }
 

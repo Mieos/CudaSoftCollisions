@@ -461,7 +461,7 @@ bool MeshStructureCollider::collide(){
 
    //Check orientation (over time, tetrahedron can invert, this should not happen)
    dim3 dimGridOrientation(sizeGridx,1);
-   checkTetOrientations<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->numTets, this->inversionTetVectorArray_d);
+   checkTetOrientations<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->numTets, this->inversionTetVectorArray_d, this->sphereBuf_d, this->normalBuf_d, this->movementsArray_d);
    if(!MeshStructureCollider::checkGPUerrors("Orientation Check")){
       return false;
    }
@@ -513,6 +513,8 @@ bool MeshStructureCollider::collide(std::vector<bool> & collisionList){
 
    for(size_t k=0; k<this->numTets;k++){
       collisionList.at(k)= (inversionTetVectorArray[k] || collideVectorArray[k]);
+      //collisionList.at(k)= collideVectorArray[k] && !inversionTetVectorArray[k];
+      //collisionList.at(k)= collideVectorArray[k];
    }
 
    return true; 
@@ -549,6 +551,50 @@ bool MeshStructureCollider::collideAndGetMovements(std::vector<bool> & collision
          movVect.at(k).push_back(movementsArray[3*k]);
          movVect.at(k).push_back(movementsArray[3*k+1]);
          movVect.at(k).push_back(movementsArray[3*k+2]);
+      }
+   }
+
+   return true; 
+
+}
+
+//Colliding function
+bool MeshStructureCollider::collideAndGetMovementsAndInversions(std::vector<bool> & collisionList, std::vector<std::vector<float> > & movVect, std::vector<bool> & invertionList, std::vector<std::vector<float> > & movVectInvertion){
+
+   //Collide
+   this->collide();
+
+   //Get results
+   size_t sizeResult = this->numTets * sizeof(bool);
+   size_t sizeMov = 3*this->numTets*sizeof(float);
+
+   if(!MeshStructureCollider::copyTohost(this->inversionTetVectorArray, this->inversionTetVectorArray_d, 
+            sizeResult, "Inversion vector Copy")){
+      return false;
+   }
+   if(!MeshStructureCollider::copyTohost(this->collideVectorArray, this->collideVectorArray_d, 
+            sizeResult, "Collision vector Copy")){
+      return false;
+   }
+   if(!MeshStructureCollider::copyTohost(this->movementsArray, this->movementsArray_d, 
+            sizeMov, "Movement vector Copy")){
+      return false;
+   }
+
+   for(size_t k=0; k<this->numTets;k++){
+      collisionList.at(k)= collideVectorArray[k];
+      invertionList.at(k)= inversionTetVectorArray[k];
+      if(collisionList.at(k)){
+         movVect.at(k).clear();
+         movVect.at(k).push_back(movementsArray[3*k]);
+         movVect.at(k).push_back(movementsArray[3*k+1]);
+         movVect.at(k).push_back(movementsArray[3*k+2]);
+      }
+      if(invertionList.at(k)){
+         movVectInvertion.at(k).clear();
+         movVectInvertion.at(k).push_back(movementsArray[3*k]);
+         movVectInvertion.at(k).push_back(movementsArray[3*k+1]);
+         movVectInvertion.at(k).push_back(movementsArray[3*k+2]);
       }
    }
 
