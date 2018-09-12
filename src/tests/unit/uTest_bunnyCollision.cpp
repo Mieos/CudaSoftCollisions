@@ -42,9 +42,10 @@ int main(int argc, char *argv[]){
    std::vector<size_t> associationResults;
    std::vector<size_t> tetSelected;
    std::vector<std::vector<size_t>> tetIdVector;
+   std::vector<bool> malformedTet;
    std::cout << "Extracting model ... ";
    auto startExtraction = std::chrono::steady_clock::now(); 
-   MeshStructureExtractor::extractModelFromFile(path,matPointsTet,tetIdVector,associationResults,tetSelected);
+   MeshStructureExtractor::extractModelFromFile(path,matPointsTet,tetIdVector,associationResults,tetSelected, malformedTet);
    auto endExtraction = std::chrono::steady_clock::now();
    auto diffExtraction = endExtraction - startExtraction;
    std::cout << std::chrono::duration <double, std::milli> (diffExtraction).count() << " ms" << std::endl;
@@ -97,7 +98,7 @@ int main(int argc, char *argv[]){
    //Create the object
    std::cout << "Creating model ... ";
    auto startCreation = std::chrono::steady_clock::now();  
-   MeshStructureCollider* msc = new MeshStructureCollider(matPointsTet,tetIdVector,associationResults);
+   MeshStructureCollider* msc = new MeshStructureCollider(matPointsTet,tetIdVector,associationResults, malformedTet);
    auto endCreation = std::chrono::steady_clock::now();
    auto diffCreation = endCreation - startCreation;
    std::cout << std::chrono::duration <double, std::milli> (diffCreation).count() << " ms" << std::endl;

@@ -205,10 +205,15 @@ int main(int argc, char *argv[]){
       associationResultsI.push_back(k);
    }
 
+   std::vector<bool> ignoredTetNI;
+   for(size_t k=0; k<tetIdVectorNI.size(); k++){
+      ignoredTetNI.push_back(false);
+   }
+
    //Create the object (NI)
    std::cout << "Creating model ... ";
    auto startCreation = std::chrono::steady_clock::now();  
-   MeshStructureCollider* mscNI = new MeshStructureCollider(niPoints,tetIdVectorNI,associationResultsNI);
+   MeshStructureCollider* mscNI = new MeshStructureCollider(niPoints,tetIdVectorNI,associationResultsNI, ignoredTetNI);
    auto endCreation = std::chrono::steady_clock::now();
    auto diffCreation = endCreation - startCreation;
    std::cout << std::chrono::duration <double, std::milli> (diffCreation).count() << " ms" << std::endl;
@@ -248,10 +253,15 @@ int main(int argc, char *argv[]){
       std::cout << "No intersection detected : OK" << std::endl;
    }
 
+   std::vector<bool> ignoredTetI;
+   for(size_t k=0; k<tetIdVectorI.size(); k++){
+      ignoredTetI.push_back(false);
+   }
+
    //Create the object (I)
    std::cout << "Creating model ... ";
    auto startCreation2 = std::chrono::steady_clock::now();  
-   MeshStructureCollider* mscI = new MeshStructureCollider(iPoints,tetIdVectorI,associationResultsI);
+   MeshStructureCollider* mscI = new MeshStructureCollider(iPoints,tetIdVectorI,associationResultsI, ignoredTetI);
    auto endCreation2 = std::chrono::steady_clock::now();
    auto diffCreation2 = endCreation2 - startCreation2;
    std::cout << std::chrono::duration <double, std::milli> (diffCreation2).count() << " ms" << std::endl;

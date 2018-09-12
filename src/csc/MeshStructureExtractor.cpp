@@ -8,18 +8,18 @@
 //Opencv
 #include "opencv2/features2d/features2d.hpp"
 
-bool MeshStructureExtractor::extractModelFromFile(std::string fileName, cv::Mat & resultStructMatTet, std::vector<std::vector<size_t>> & tetIdVector, std::vector<size_t> & associationVectorResult , std::vector<size_t> & tetSelected){
+bool MeshStructureExtractor::extractModelFromFile(std::string fileName, cv::Mat & resultStructMatTet, std::vector<std::vector<size_t>> & tetIdVector, std::vector<size_t> & associationVectorResult , std::vector<size_t> & tetSelected, std::vector<bool> & malformedTet){
 
    vtkSmartPointer<vtkUnstructuredGrid> msh;
    if(!MeshHelpers::readVolumeMeshVTK(fileName,msh)){
       return false;
    }
 
-   return extractModelFromMesh(msh, resultStructMatTet, tetIdVector, associationVectorResult, tetSelected);
+   return extractModelFromMesh(msh, resultStructMatTet, tetIdVector, associationVectorResult, tetSelected, malformedTet);
 
 }
 
-bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstructuredGrid> & mesh3d, cv::Mat & resultStructMatTet, std::vector<std::vector<size_t>> & tetIdVector, std::vector<size_t> & associationVectorResult, std::vector<size_t> & tetSelected){
+bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstructuredGrid> & mesh3d, cv::Mat & resultStructMatTet, std::vector<std::vector<size_t>> & tetIdVector, std::vector<size_t> & associationVectorResult, std::vector<size_t> & tetSelected, std::vector<bool> & malformedTet){
 
    //First get the surface of the model
    vtkSmartPointer<vtkPolyData> surfPolyData;
@@ -121,7 +121,7 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
    //Search the faces of the surface
    std::vector<std::pair<size_t,size_t>> assoFaceSFaceV;
    for(size_t k=0; k<vectorIdFacesSurface.size(); k++){
-      
+
       //Get the face
       size_t p1 = std::get<0>(vectorIdFacesSurface.at(k));
       size_t p2 = std::get<1>(vectorIdFacesSurface.at(k));
@@ -148,7 +148,7 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
 
             mesh3d->GetCellPoints(mapIdsFacesVolum[keyU].at(0), npts, pts);
             tetSelected.push_back(mapIdsFacesVolum[keyU].at(0)); 
-            
+
             //Get the tetrahedron corresponding
             if(npts!=4){
                std::cout << "Bug in model extraction : 3" << std::endl;
@@ -180,13 +180,13 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
    std::map<size_t,bool> pointsTet;
 
    for(size_t k=0; k<assoFaceSFaceV.size(); k++){
-     
+
       size_t numTet = assoFaceSFaceV.at(k).first;
       size_t numExtFace = assoFaceSFaceV.at(k).second;
 
       //Get the corresponding tet
       mesh3d->GetCellPoints(numTet, npts, pts);
-      
+
       //SubID of the external face
       std::vector<size_t> vectExtFace;
       vectExtFace.push_back(idTetFaces[3*numExtFace]);
@@ -198,7 +198,7 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
       while(std::find(vectExtFace.begin(),vectExtFace.end(),extPointID)!=vectExtFace.end()){
          extPointID++;
       }
-      
+
       //Vect
       double vect1[3];
       double vect2[3];
@@ -239,16 +239,16 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
       pointsTet[idF1[1]]=true;
       pointsTet[idF1[2]]=true;
       pointsTet[pointIDout]=true;
-   
+
       if(!MeshHelpers::checkDirectVectorOrientation(v1,v2,v3)){
-      
+
          //OK
          vectorInter.push_back(idF1[1]);
          vectorInter.push_back(idF1[2]);
          vectorInter.push_back(pointIDout);
 
       } else {
-      
+
          //Reorder      
          vectorInter.push_back(idF1[2]);
          vectorInter.push_back(idF1[1]);
@@ -260,11 +260,12 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
 
    }
 
+
    size_t numPointsTet=0;
    std::vector<size_t> vectorTetIDF;
    for(std::map<size_t,bool>::iterator it = pointsTet.begin(); it != pointsTet.end(); ++it) {
-       numPointsTet++;
-       vectorTetIDF.push_back(it->first);
+      numPointsTet++;
+      vectorTetIDF.push_back(it->first);
    }
 
    //Create the point matrix
@@ -287,11 +288,58 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
       }
       tetIdVector.push_back(vectorInter);
    }
-   
+
+   cv::Ptr< cv::DescriptorMatcher > matcherMalf = cv::DescriptorMatcher::create("BruteForce");
+   std::vector< std::vector< cv::DMatch> > matchesMalf;
+   matcherMalf->knnMatch(tetrahedronMat, matSurfPoints3D, matchesMalf, 1);
+
+   std::vector<bool> surfacePointVectorBool;
+   for(size_t k=0; k<tetrahedronMat.rows; k++){
+      
+      size_t indexL = matchesMalf[k][0].trainIdx;
+      float dist = matchesMalf[k][0].distance;
+
+      if(dist>0){ 
+         surfacePointVectorBool.push_back(false);
+      } else {
+         surfacePointVectorBool.push_back(true);
+      }
+
+   }
+
+   //Get malformed tetrahedron
+   malformedTet.clear();
+   for(size_t k=0; k<vectorTetId.size(); k++){
+
+      if(!tetIdVector.at(k).size()==4){
+         std::cout << "Bug in model creation" << std::endl;
+         break;
+      }
+
+      bool oKFOUND = false;
+      for(size_t i=0; i<4; i++){
+
+         size_t idInit = tetIdVector.at(k).at(i);
+
+         if(!surfacePointVectorBool.at(idInit)){
+            oKFOUND=true;
+            break;
+         }
+
+      }
+
+      if(!oKFOUND){
+         malformedTet.push_back(true);
+      } else { 
+         malformedTet.push_back(false);
+      }
+
+   }
+
    cv::Mat matMesh3D = cv::Mat::zeros(mesh3d->GetNumberOfPoints(),3,CV_32FC1);
-   
+
    for(size_t k=0; k<mesh3d->GetNumberOfPoints();k++){
-   
+
       double pts3D[3];
       mesh3d->GetPoints()->GetPoint(k,pts3D);
       for(size_t i=0; i<3; i++){
@@ -303,7 +351,7 @@ bool MeshStructureExtractor::extractModelFromMesh(const vtkSmartPointer<vtkUnstr
    cv::Ptr< cv::DescriptorMatcher > matcher = cv::DescriptorMatcher::create("BruteForce");
    std::vector< std::vector< cv::DMatch> > matches;
    matcher->knnMatch(tetrahedronMat, matMesh3D, matches, 1);
-   
+
    for(size_t k=0; k<tetrahedronMat.rows; k++){
       size_t indexL = matches[k][0].trainIdx;
       associationVectorResult.push_back(indexL);

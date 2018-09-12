@@ -19,33 +19,29 @@ __global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t
 
       size_t numberColisions = 0;
 
-      if(!invert1) {
+      //Update movement
+      movementArray[3*numTet]=0;
+      movementArray[3*numTet+1]=0;
+      movementArray[3*numTet+2]=0;
 
-         //Update movement
-         movementArray[3*numTet]=0;
-         movementArray[3*numTet+1]=0;
-         movementArray[3*numTet+2]=0;
+      for(size_t k=0; k<numberTets; k++){
 
-         for(size_t k=0; k<numberTets; k++){
+         if(!checkSameTet(idArrayD,&numTet,&k)){
 
-            if(!checkSameTet(idArrayD,&numTet,&k)){
+            if(checkSphereIntersection(centerSphereB,&numTet,&k)){
 
-               if(checkSphereIntersection(centerSphereB,&numTet,&k)){
+               numberColisions++;
 
-                  numberColisions++;
+               if(inversionVector[k]){
+                  invert2=true;
+               } else {
+                  invert2=false;
+               }
 
-                  if(inversionVector[k]){
-                     invert2=true;
-                  } else {
-                     invert2=false;
+               if(!invert2){
+                  if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet, k, invert1, invert2)){
+                     intersectionVector[numTet]=true;
                   }
-
-                  if(!invert2){
-                     if(checkTetraIntersection(dataPointsD,idArrayD, normalsB, numTet, k, invert1, invert2)){
-                        intersectionVector[numTet]=true;
-                     }
-                  }
-
                }
 
             }
@@ -67,7 +63,7 @@ __global__ void checkForIntersectionV0_withmovements(float*  dataPointsD, size_t
             movementArray[3*numTet+1] = -norm * normalsB[4*6*numTet+1];
             movementArray[3*numTet+2] = -norm * normalsB[4*6*numTet+2];
          }
-         
+
       }
 
    }

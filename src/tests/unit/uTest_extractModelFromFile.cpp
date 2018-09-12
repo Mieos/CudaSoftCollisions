@@ -32,7 +32,8 @@ int main(int argc, char *argv[]){
    std::vector<size_t> associationResults;
    std::vector<size_t> tetSelected;
    std::vector<std::vector<size_t>> tetIdVector;
-   MeshStructureExtractor::extractModelFromFile(path,matPointsTet,tetIdVector,associationResults,tetSelected);
+   std::vector<bool> malformedTet;
+   MeshStructureExtractor::extractModelFromFile(path,matPointsTet,tetIdVector,associationResults,tetSelected, malformedTet);
 
    //Read 3D mesh
    vtkSmartPointer<vtkUnstructuredGrid> msh;

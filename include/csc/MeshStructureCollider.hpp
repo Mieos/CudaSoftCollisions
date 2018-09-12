@@ -8,7 +8,8 @@ class MeshStructureCollider {
 
    public:
 
-      MeshStructureCollider(const cv::Mat & dataMesh, const std::vector<std::vector<size_t> > & tetIdVector, const std::vector<size_t> & associationVectorU);
+      MeshStructureCollider(const cv::Mat & dataMesh, const std::vector<std::vector<size_t> > & tetIdVector, const std::vector<size_t> & associationVectorU, const std::vector<bool> & ignoredInversionTet);
+
       ~MeshStructureCollider();
       bool isProperlyInitialized();
       bool updatePointsPositions(const cv::Mat & newPositions);
@@ -63,6 +64,11 @@ class MeshStructureCollider {
       //Movements arrays 
       float* movementsArray;
       float* movementsArray_d;
+
+      //Ignored inversions
+      std::vector<bool> inversionsIgnored;
+      float* movementsInversions;
+      float* movementsInversions_d;
 
 };
 

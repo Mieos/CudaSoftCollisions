@@ -97,14 +97,15 @@ int main(int argc, char *argv[]){
       associationResults.push_back(k);
    }
 
-   for(size_t k=0; k<cvPoints.rows; k++){
-      //std::cout << "PX = " << cvPoints.at<float>(k,0) << " , PY = " << cvPoints.at<float>(k,1) << " , PZ = " << cvPoints.at<float>(k,2) << std::endl;
+   std::vector<bool> ignoredInversionTet;
+   for(size_t k=0; k<ignoredInversionTet.size(); k++){
+      ignoredInversionTet.push_back(false);
    }
 
    //Create the object
    std::cout << "Creating model ... ";
    auto startCreation = std::chrono::steady_clock::now();  
-   MeshStructureCollider* msc = new MeshStructureCollider(cvPoints,tetIdVector,associationResults);
+   MeshStructureCollider* msc = new MeshStructureCollider(cvPoints,tetIdVector,associationResults, ignoredInversionTet);
    auto endCreation = std::chrono::steady_clock::now();
    auto diffCreation = endCreation - startCreation;
    std::cout << std::chrono::duration <double, std::milli> (diffCreation).count() << " ms" << std::endl;

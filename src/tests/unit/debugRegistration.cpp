@@ -14,7 +14,6 @@
 #include <vtkTriangle.h>
 #include <vtkCellArray.h>
 
-#include <vtkPLYWriter.h>
 #include <vtkGenericDataObjectWriter.h>
 
 #include <vtkPointData.h>
@@ -22,6 +21,8 @@
 #include <chrono>
 
 #include <algorithm>
+
+#include "opencv2/features2d/features2d.hpp"
 
 
 int main(int argc, char *argv[]){
@@ -41,15 +42,17 @@ int main(int argc, char *argv[]){
    std::vector<size_t> associationResults;
    std::vector<size_t> tetSelected;
    std::vector<std::vector<size_t>> tetIdVector;
+   std::vector<bool> malformedTet;
    std::cout << "Extracting model ... ";
    auto startExtraction = std::chrono::steady_clock::now(); 
-   MeshStructureExtractor::extractModelFromFile(path,matPointsTet,tetIdVector,associationResults,tetSelected);
+   MeshStructureExtractor::extractModelFromFile(path,matPointsTet,tetIdVector,associationResults,tetSelected, malformedTet);
    auto endExtraction = std::chrono::steady_clock::now();
    auto diffExtraction = endExtraction - startExtraction;
    std::cout << std::chrono::duration <double, std::milli> (diffExtraction).count() << " ms" << std::endl;
 
    vtkSmartPointer<vtkUnstructuredGrid> mesh3d;
    MeshHelpers::readVolumeMeshVTK(path,mesh3d);
+   
    size_t numberOfPoints = mesh3d->GetNumberOfPoints();
    cv::Mat pointsMat = cv::Mat::zeros(numberOfPoints,3,CV_32FC1);
    double interPoint[3];
@@ -64,7 +67,7 @@ int main(int argc, char *argv[]){
    //Create the object
    std::cout << "Creating model ... ";
    auto startCreation = std::chrono::steady_clock::now();  
-   MeshStructureCollider* msc = new MeshStructureCollider(matPointsTet,tetIdVector,associationResults);
+   MeshStructureCollider* msc = new MeshStructureCollider(matPointsTet,tetIdVector,associationResults, malformedTet);
    auto endCreation = std::chrono::steady_clock::now();
    auto diffCreation = endCreation - startCreation;
    std::cout << std::chrono::duration <double, std::milli> (diffCreation).count() << " ms" << std::endl;
@@ -115,27 +118,6 @@ int main(int argc, char *argv[]){
          0,2,3,1,
          1,2,3,0
    };
- 
-   //FIXME
-   for(size_t k=0; k<invertVector.size(); k++){
-      if(invertVector.at(k)){
-     
-            
-         size_t idToChange = associationResults.at(tetIdVector.at(k).at(3));
-
-         float dx = 2*movVect2.at(k).at(0);
-         float dy = 2*movVect2.at(k).at(1);
-         float dz = 2*movVect2.at(k).at(2);
-      
-         std::cout << "DEBUG = " << dx << " , " << dy << " , " << dz  << std::endl;
-         
-         M.at<cv::Point3d>(idToChange).x = M.at<cv::Point3d>(idToChange).x +dx;
-         M.at<cv::Point3d>(idToChange).y = M.at<cv::Point3d>(idToChange).y +dy;
-         M.at<cv::Point3d>(idToChange).z = M.at<cv::Point3d>(idToChange).z +dz;
-
-      }
-   }
-   msc->collideAndGetMovementsAndInversions(collideVector, movVect1, invertVector, movVect2);
 
    vtkSmartPointer< vtkPoints > points = vtkSmartPointer< vtkPoints > :: New();
    double x_u, y_u, z_u;
@@ -156,7 +138,6 @@ int main(int argc, char *argv[]){
       invertingPoints.push_back(false);
 
    }
-   std::cout << "NUM points = " << associationResults.size() << std::endl;
 
    vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
    for(size_t k=0; k<tetIdVector.size(); k++){

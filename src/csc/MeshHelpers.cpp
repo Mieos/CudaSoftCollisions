@@ -107,13 +107,15 @@ bool MeshHelpers::getSurfaceOfVolMesh(const vtkSmartPointer<vtkUnstructuredGrid>
    }
 
    for(std::map<std::tuple<size_t, size_t, size_t>,std::vector<size_t>>::iterator it = mapIdsFaces.begin(); it != mapIdsFaces.end(); ++it) {
-      size_t p1,p2,p3;
-      p1 = std::get<0>(it->first);
-      p2 = std::get<1>(it->first);
-      p3 = std::get<2>(it->first);
-      mapPoints[p1]=true;
-      mapPoints[p2]=true;
-      mapPoints[p3]=true;
+      if(it->second.size()==1){
+         size_t p1,p2,p3;
+         p1 = std::get<0>(it->first);
+         p2 = std::get<1>(it->first);
+         p3 = std::get<2>(it->first);
+         mapPoints[p1]=true;
+         mapPoints[p2]=true;
+         mapPoints[p3]=true;
+      }
 
    }
    

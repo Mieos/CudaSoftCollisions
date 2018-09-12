@@ -12,8 +12,8 @@ class MeshStructureExtractor {
 
    public:
 
-      static bool extractModelFromFile(std::string fileName, cv::Mat & resultStructMatTet, std::vector<std::vector<size_t> > & tetIdVector, std::vector<size_t> & associationVectorResult, std::vector<size_t> & tetSelected);
-      static bool extractModelFromMesh(const vtkSmartPointer<vtkUnstructuredGrid> & mesh3d, cv::Mat & resultStructMatTet, std::vector<std::vector<size_t>> & tetIdVector, std::vector<size_t> & associationVectorResult, std::vector<size_t> & tetSelected);
+      static bool extractModelFromFile(std::string fileName, cv::Mat & resultStructMatTet, std::vector<std::vector<size_t> > & tetIdVector, std::vector<size_t> & associationVectorResult, std::vector<size_t> & tetSelected, std::vector<bool> & malformedTet);
+      static bool extractModelFromMesh(const vtkSmartPointer<vtkUnstructuredGrid> & mesh3d, cv::Mat & resultStructMatTet, std::vector<std::vector<size_t>> & tetIdVector, std::vector<size_t> & associationVectorResult, std::vector<size_t> & tetSelected, std::vector<bool> & malformedTet);
 
 };
 

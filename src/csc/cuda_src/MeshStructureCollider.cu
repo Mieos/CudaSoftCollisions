@@ -5,7 +5,7 @@
 #include "kernels/csc_core.h"
 
 //Init all the buffers
-MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std::vector<std::vector<size_t> > & tetIdVector, const std::vector<size_t> & associationVectorU) : initialized(false), numPoints(0), verbose(true){
+MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std::vector<std::vector<size_t> > & tetIdVector, const std::vector<size_t> & associationVectorU , const std::vector<bool> & ignoredInversionTet ) : initialized(false), numPoints(0), verbose(true){
 
    //Cuda error
    bool errorDetected = false;
@@ -136,6 +136,35 @@ MeshStructureCollider::MeshStructureCollider(const cv::Mat & dataMesh, const std
             errorDetected=true;
          }
 
+         this->inversionsIgnored.clear();
+         for(size_t k=0; k<ignoredInversionTet.size(); k++){
+            this->inversionsIgnored.push_back(ignoredInversionTet.at(k));
+         }
+         /*
+         size_t size_inversionsIgnored = this->numTets*sizeof(bool);
+         if(!MeshStructureCollider::cudaAllocation((void **) &(this->inversionsIgnored_d),
+                                       size_inversionsIgnored, "Movement array")){
+            errorDetected=true;
+            bool* inversionArray = new bool[this->numTets];
+            for(size_t k=0; k<ignoredInversionTet.size(); k++){
+               inversionArray[k] = ignoredInversionTet.at(k);
+            }
+            if(!MeshStructureCollider::copyTodevice(this->inversionsIgnored_d,inversionArray,size_inversionsIgnored,"Inversion Ignored Structures")){
+               errorDetected=true;
+            }
+            delete[] inversionArray;
+         }
+         */
+
+         this->movementsInversions = new float[3*this->numTets];
+         if(!MeshStructureCollider::cudaAllocation((void **) &(this->movementsInversions_d), 
+                     size_movementsArray, "Movement array")){
+            errorDetected=true;
+         }
+
+
+
+
          //end TODO
 
          //Update state
@@ -231,6 +260,7 @@ MeshStructureCollider::~MeshStructureCollider(){
    delete[] this->dataArrayBuff;
    delete[] this->collideVectorArray;
    delete[] this->inversionTetVectorArray;
+   delete[] this->movementsInversions;
 
    //GPU arrays
    cudaFree(this->data_d);
@@ -239,6 +269,7 @@ MeshStructureCollider::~MeshStructureCollider(){
    cudaFree(this->normalBuf_d);
    cudaFree(this->inversionTetVectorArray_d);
    cudaFree(this->collideVectorArray_d);
+   cudaFree(this->movementsInversions_d);
 
    //Optional arrays (CPU and GPU)
    if(this->useSubdivision){
@@ -461,13 +492,14 @@ bool MeshStructureCollider::collide(){
 
    //Check orientation (over time, tetrahedron can invert, this should not happen)
    dim3 dimGridOrientation(sizeGridx,1);
-   checkTetOrientations<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->numTets, this->inversionTetVectorArray_d, this->sphereBuf_d, this->normalBuf_d, this->movementsArray_d);
+   checkTetOrientations<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->numTets, this->inversionTetVectorArray_d, this->sphereBuf_d, this->normalBuf_d, this->movementsInversions_d);
    if(!MeshStructureCollider::checkGPUerrors("Orientation Check")){
       return false;
    }
 
    //Check collision
    if(this->useSubdivision){
+      //This is not working and should not be used for now FIXME
       size_t size_loop = size_t(float(this->numTets)/float(this->numberSub));
       checkForIntersectionV1<<<dimGrid, dimBlock>>>(this->data_d, this->tetId_d, this->sphereBuf_d, this->normalBuf_d, this->numTets, size_loop, this->subdividedCollisionVector_d); 
    } else {
@@ -580,21 +612,25 @@ bool MeshStructureCollider::collideAndGetMovementsAndInversions(std::vector<bool
             sizeMov, "Movement vector Copy")){
       return false;
    }
+   if(!MeshStructureCollider::copyTohost(this->movementsInversions, this->movementsInversions_d, 
+            sizeMov, "Movement Inversion vector Copy")){
+      return false;
+   }
 
-   for(size_t k=0; k<this->numTets;k++){
-      collisionList.at(k)= collideVectorArray[k];
-      invertionList.at(k)= inversionTetVectorArray[k];
+   for(size_t k=0; k<this->numTets;k++){ 
+      invertionList.at(k)= inversionTetVectorArray[k] && !inversionsIgnored.at(k);
+      collisionList.at(k)= collideVectorArray[k] && !inversionTetVectorArray[k];
       if(collisionList.at(k)){
          movVect.at(k).clear();
-         movVect.at(k).push_back(movementsArray[3*k]);
-         movVect.at(k).push_back(movementsArray[3*k+1]);
-         movVect.at(k).push_back(movementsArray[3*k+2]);
+         movVect.at(k).push_back(this->movementsArray[3*k]);
+         movVect.at(k).push_back(this->movementsArray[3*k+1]);
+         movVect.at(k).push_back(this->movementsArray[3*k+2]);
       }
       if(invertionList.at(k)){
          movVectInvertion.at(k).clear();
-         movVectInvertion.at(k).push_back(movementsArray[3*k]);
-         movVectInvertion.at(k).push_back(movementsArray[3*k+1]);
-         movVectInvertion.at(k).push_back(movementsArray[3*k+2]);
+         movVectInvertion.at(k).push_back(this->movementsInversions[3*k]);
+         movVectInvertion.at(k).push_back(this->movementsInversions[3*k+1]);
+         movVectInvertion.at(k).push_back(this->movementsInversions[3*k+2]);
       }
    }
 

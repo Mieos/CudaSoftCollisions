@@ -42,12 +42,20 @@ int main(int argc, char *argv[]){
    std::vector<size_t> associationResults1, associationResults2, associationResultsT;
    std::vector<size_t> tetSelected1, tetSelected2;
    std::vector<std::vector<size_t>> tetIdVector1, tetIdVector2, tetIdVectorT;
+   std::vector<bool> malformedtet1, malformedtet2, malformedtetT;
    std::cout << "Extracting model 1 ... ";
-   MeshStructureExtractor::extractModelFromFile(pathS1,matPointsTet1,tetIdVector1,associationResults1,tetSelected1);
+   MeshStructureExtractor::extractModelFromFile(pathS1,matPointsTet1,tetIdVector1,associationResults1,tetSelected1, malformedtet1);
    std::cout << std::endl;
    std::cout << "Extracting model 2 ... ";
-   MeshStructureExtractor::extractModelFromFile(pathS2,matPointsTet2,tetIdVector2,associationResults2,tetSelected2);
+   MeshStructureExtractor::extractModelFromFile(pathS2,matPointsTet2,tetIdVector2,associationResults2,tetSelected2, malformedtet2);
    std::cout << std::endl;
+   for(size_t k=0; k<malformedtet1.size(); k++){
+      malformedtetT.push_back(malformedtet1.at(k));
+   }
+   for(size_t k=0; k<malformedtet2.size(); k++){
+      malformedtetT.push_back(malformedtet2.at(k));
+   }
+
 
    //Meshes
    vtkSmartPointer<vtkUnstructuredGrid> mesh3d1, mesh3d2;
@@ -113,7 +121,7 @@ int main(int argc, char *argv[]){
 
    //Create the object
    std::cout << "Creating model ... ";
-   MeshStructureCollider* msc = new MeshStructureCollider(matPointsTetT,tetIdVectorT,associationResultsT);
+   MeshStructureCollider* msc = new MeshStructureCollider(matPointsTetT,tetIdVectorT,associationResultsT, malformedtetT);
    std::cout << std::endl;
 
    //Update 

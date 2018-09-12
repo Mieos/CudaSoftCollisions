@@ -121,10 +121,15 @@ int main(int argc, char *argv[]){
       associationResultsI.push_back(k);
    }
 
+   std::vector<bool> ignoredInversionTet;
+   for(size_t k=0; k<tetIdVectorI.size(); k++){
+      ignoredInversionTet.push_back(false);
+   }
+
    //Create the object (I)
    std::cout << "Creating model ... ";
    auto startCreation2 = std::chrono::steady_clock::now();  
-   MeshStructureCollider* mscI = new MeshStructureCollider(iPoints,tetIdVectorI,associationResultsI);
+   MeshStructureCollider* mscI = new MeshStructureCollider(iPoints,tetIdVectorI,associationResultsI, ignoredInversionTet);
    auto endCreation2 = std::chrono::steady_clock::now();
    auto diffCreation2 = endCreation2 - startCreation2;
    std::cout << std::chrono::duration <double, std::milli> (diffCreation2).count() << " ms" << std::endl;
